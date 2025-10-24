@@ -6,7 +6,7 @@ spring:
   application:
     name: api-gateway
   datasource:
-    url: jdbc:mysql://localhost:3306/userService
+    url: jdbc:mysql://localhost:3306/expense
     username: root
     password: Hunter@4343
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -25,8 +25,8 @@ spring:
             - id: user-service
               uri: http://localhost:8081
               predicates:
-                - Path=/api/users/**
-            - id: news-management-service
+                - Path=/api/v1/users/**
+            - id: transaction-service
               uri: http://localhost:8082
               predicates:
-                - Path=/api/news/**
+                - Path=/api/v1/transaction/**

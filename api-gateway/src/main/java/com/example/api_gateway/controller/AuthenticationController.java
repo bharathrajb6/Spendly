@@ -41,7 +41,7 @@ public class AuthenticationController {
     public ResponseEntity<?> login(@RequestBody AuthRequest authRequest) {
         ResponseEntity<Boolean> validationResponse;
         try {
-            validationResponse = restTemplate.postForEntity("http://localhost:8081/api/users/validate", authRequest, Boolean.class);
+            validationResponse = restTemplate.postForEntity("http://localhost:8081/api/v1/users/validate", authRequest, Boolean.class);
         } catch (RestClientResponseException exception) {
             String responseBody = exception.getResponseBodyAsString();
             HttpStatusCode statusCode = exception.getStatusCode();
@@ -74,7 +74,7 @@ public class AuthenticationController {
     public ResponseEntity<?> register(@RequestBody UserRequest userRequest) {
         ResponseEntity<Boolean> validationResponse;
         try {
-            validationResponse = restTemplate.postForEntity("http://localhost:8081/api/users/register", userRequest, Boolean.class);
+            validationResponse = restTemplate.postForEntity("http://localhost:8081/api/v1/users/register", userRequest, Boolean.class);
         } catch (RestClientResponseException exception) {
             String responseBody = exception.getResponseBodyAsString();
             HttpStatusCode statusCode = exception.getStatusCode();
