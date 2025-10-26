@@ -35,4 +35,10 @@ public class Transaction {
 
     @Column(name = "notes")
     private String notes;
+
+    @Column(name = "payment_type")
+    private String paymentType;
+
+    @Column(name = "is_recurring_transaction")
+    private boolean isRecurringTransaction;
 }

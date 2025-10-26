@@ -19,4 +19,6 @@ public class TransactionResponse {
     private String type;
     private Timestamp transactionDate;
     private String notes;
+    private String paymentType;
+    private boolean isRecurring;
 }

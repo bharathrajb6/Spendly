@@ -29,6 +29,8 @@ public class TransactionUtil {
         transaction.setNotes(request.getNotes());
         transaction.setUsername(username);
         transaction.setCategory(request.getCategory());
+        transaction.setPaymentType(request.getPaymentType());
+        transaction.setRecurringTransaction(request.isRecurring());
 
         log.info("Generated transaction: {}", transaction);
         return transaction;
@@ -51,6 +53,8 @@ public class TransactionUtil {
         response.setAmount(transaction.getAmount());
         response.setTransactionDate(transaction.getTransactionDate());
         response.setNotes(transaction.getNotes());
+        response.setPaymentType(transaction.getPaymentType());
+        response.setRecurring(transaction.isRecurringTransaction());
 
         log.info("Converted Transaction to TransactionResponse: {}", response);
 

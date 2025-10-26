@@ -11,12 +11,14 @@ import com.example.transaction_service.util.TransactionUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.example.transaction_service.util.TransactionUtil.generateTransaction;
 import static com.example.transaction_service.util.TransactionUtil.toTransactionResponse;
@@ -133,7 +135,7 @@ public class TransactionService {
 
         try {
             // Update the transaction in the database
-            transactionRepo.updateTransaction(request.getType(), request.getCategory(), request.getAmount(), request.getNotes(), transaction.get().getUsername());
+            transactionRepo.updateTransaction(request.getType(), request.getCategory(), request.getAmount(), request.getNotes(), request.getPaymentType(), request.isRecurring(), transactionID);
         } catch (Exception exception) {
             // If unable to update, throw exception
             throw new TransactionException(exception.getMessage());
@@ -260,14 +262,14 @@ public class TransactionService {
         // Retrieve all transactions for the given username
         Page<Transaction> transactions = transactionRepo.findTransactionByUsername(username, pageable);
 
-        // Filter transactions based on the given category
-        transactions.getContent().stream().filter(transaction -> {
-            return !transaction.getTransactionType().equals(value);
-        });
+        // Filter transactions based on the given category and collect results
+        List<Transaction> filteredTransactions = transactions.getContent().stream()
+                .filter(transaction -> transaction.getCategory().equals(value))
+                .collect(Collectors.toList());
 
-        return transactions.map(TransactionUtil::toTransactionResponse);
-
-
+        // Convert to Page and then map to response
+        return new PageImpl<>(filteredTransactions, pageable, filteredTransactions.size())
+                .map(TransactionUtil::toTransactionResponse);
     }
 
     /**

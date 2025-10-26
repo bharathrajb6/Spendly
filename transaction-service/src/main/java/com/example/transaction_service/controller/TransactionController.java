@@ -53,9 +53,7 @@ public class TransactionController {
      * @throws TransactionException If no transactions are found for the given user.
      */
     @GetMapping("/transaction")
-    public Page<TransactionResponse> getAllTransactions(
-            @RequestHeader("X-Username") String username,
-            @PageableDefault(size = 10, page = 0) Pageable pageable) {
+    public Page<TransactionResponse> getAllTransactions(@RequestHeader("X-Username") String username, @PageableDefault(size = 10, page = 0) Pageable pageable) {
         return transactionService.getAllTransactionForUser(username, pageable);
     }
 
@@ -97,11 +95,7 @@ public class TransactionController {
      * @throws TransactionException If the start date is after the end date, or if no transactions are found for the given user.
      */
     @GetMapping("/transaction/filter")
-    public Page<TransactionResponse> getTransactionFilter(
-            @RequestHeader("X-Username") String username,
-            @RequestParam("start") String start,
-            @RequestParam("end") String end,
-            @PageableDefault(size = 10, page = 0) Pageable pageable) {
+    public Page<TransactionResponse> getTransactionFilter(@RequestHeader("X-Username") String username, @RequestParam("start") String start, @RequestParam("end") String end, @PageableDefault(size = 10, page = 0) Pageable pageable) {
         return transactionService.getFilteredTransaction(username, start, end, pageable);
     }
 
@@ -116,10 +110,7 @@ public class TransactionController {
      * @throws TransactionException If the username is null, or if the category is invalid.
      */
     @GetMapping("/transaction/category/{value}")
-    public Page<TransactionResponse> getTransactionByCategory(
-            @RequestHeader("X-Username") String username,
-            @PathVariable String value,
-            @PageableDefault(size = 10, page = 0) Pageable pageable) {
+    public Page<TransactionResponse> getTransactionByCategory(@RequestHeader("X-Username") String username, @PathVariable String value, @PageableDefault(size = 10, page = 0) Pageable pageable) {
         return transactionService.getTransactionsListByCategory(username, value, pageable);
     }
 
