@@ -10,13 +10,13 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
 
+
     /**
-     * Creates a {@link SecurityWebFilterChain} that disables CSRF protection and
-     * allows any exchange to be permitted. This is suitable for a simple service
-     * that doesn't handle sensitive data.
+     * A bean that defines a security filter chain for the application.
+     * The chain is configured to disable CSRF protection and to permit all requests.
      *
-     * @param http the server HTTP security configuration
-     * @return the security web filter chain
+     * @param http The server HTTP security object.
+     * @return The security web filter chain to use.
      */
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {

@@ -29,6 +29,15 @@ public class TransactionService {
     @Autowired
     private TransactionRepo transactionRepo;
 
+
+    /**
+     * This method is used to add a new transaction for the given username.
+     *
+     * @param username The username for which the transaction is being added.
+     * @param request  The transaction request object containing the details of the transaction.
+     * @return The transaction response object containing the saved transaction's details.
+     * @throws TransactionException If the transaction is unable to be saved to the database.
+     */
     public TransactionResponse addTransaction(String username, TransactionRequest request) {
 
         // Validate the transaction request object
@@ -41,6 +50,7 @@ public class TransactionService {
             // Save the object to database
             transactionRepo.save(transaction);
         } catch (Exception exception) {
+            // If unable to save, throw exception
             throw new TransactionException(String.format("Unable to save transaction", exception.getMessage()));
         }
 
@@ -48,7 +58,20 @@ public class TransactionService {
     }
 
 
+    /**
+     * Retrieves a transaction by its ID.
+     *
+     * @param transactionID The ID of the transaction to retrieve.
+     * @return The transaction response object containing the retrieved transaction's details.
+     * @throws TransactionException If no transaction is found with the given ID.
+     */
     public TransactionResponse getTransaction(String transactionID) {
+        // Check if transactionID is null
+        if (transactionID == null) {
+            throw new TransactionException("Transaction ID should not be null");
+        }
+
+        // Find the transaction by its ID
         Optional<Transaction> transaction = transactionRepo.findByTransactionID(transactionID);
 
         if (transaction.isEmpty()) {
@@ -59,8 +82,21 @@ public class TransactionService {
     }
 
 
+    /**
+     * Retrieves all transactions for a given username.
+     *
+     * @param username The username for which all transactions are being retrieved.
+     * @param pageable The pageable object containing the page and size details.
+     * @return A page of transaction response objects containing all transactions for the given user.
+     * @throws TransactionException If no transactions are found for the given user.
+     */
     public Page<TransactionResponse> getAllTransactionForUser(String username, Pageable pageable) {
 
+        if (username == null) {
+            throw new TransactionException("Username should not be null");
+        }
+
+        // Retrieve all transactions for the given username
         Page<Transaction> transactions = transactionRepo.findTransactionByUsername(username, pageable);
 
         if (transactions.isEmpty()) {
@@ -71,35 +107,54 @@ public class TransactionService {
     }
 
 
+    /**
+     * Updates an existing transaction for the given username.
+     *
+     * @param transactionID The ID of the transaction to update.
+     * @param request       The transaction request object containing the updated details of the transaction.
+     * @return The transaction response object containing the updated transaction's details.
+     * @throws TransactionException If the transaction is unable to be updated to the database or if no transaction is found with the given ID.
+     */
     public TransactionResponse updateTransaction(String transactionID, TransactionRequest request) {
 
         if (transactionID == null) {
             throw new TransactionException("Transaction ID should not be null");
         }
 
+        // Find the transaction by its ID
         Optional<Transaction> transaction = transactionRepo.findByTransactionID(transactionID);
 
         if (transaction.isEmpty()) {
             throw new TransactionException("Transaction not found with this ID.");
         }
 
+        // Validate the transaction request object
         validateTransaction(request);
 
         try {
+            // Update the transaction in the database
             transactionRepo.updateTransaction(request.getType(), request.getCategory(), request.getAmount(), request.getNotes(), transaction.get().getUsername());
         } catch (Exception exception) {
+            // If unable to update, throw exception
             throw new TransactionException(exception.getMessage());
         }
 
         return getTransaction(transactionID);
     }
 
+    /**
+     * Deletes a transaction by its ID.
+     *
+     * @param transactionID The ID of the transaction to delete.
+     * @throws TransactionException If the transaction is unable to be deleted from the database or if no transaction is found with the given ID.
+     */
     public void deleteTransaction(String transactionID) {
 
         if (transactionID == null) {
             throw new TransactionException("Transaction ID should not be null");
         }
 
+        // Find the transaction by its ID
         Optional<Transaction> transaction = transactionRepo.findByTransactionID(transactionID);
 
         if (transaction.isEmpty()) {
@@ -107,12 +162,24 @@ public class TransactionService {
         }
 
         try {
+            // Delete the transaction from the database
             transactionRepo.delete(transaction.get());
         } catch (Exception exception) {
+            // If unable to delete, throw exception
             throw new TransactionException(exception.getMessage());
         }
     }
 
+    /**
+     * Retrieves all transactions for a given username within a given date range.
+     *
+     * @param username The username for which all transactions are being retrieved.
+     * @param start    The start date of the range.
+     * @param end      The end date of the range.
+     * @param pageable The pageable object containing the page and size details.
+     * @return A page of transaction response objects containing all transactions for the given user within the given date range.
+     * @throws TransactionException If the start date is after the end date, or if no transactions are found for the given user.
+     */
     public Page<TransactionResponse> getFilteredTransaction(String username, String start, String end, Pageable pageable) {
 
         if (start == null || end == null) {
@@ -126,34 +193,47 @@ public class TransactionService {
         LocalDate startDate, endDate;
 
         try {
+            // Parse the start and end dates
             startDate = LocalDate.parse(start);
             endDate = LocalDate.parse(end);
         } catch (Exception exception) {
+            // If unable to parse, throw exception
             throw new TransactionException("Invalid date format");
         }
 
         if (endDate.isBefore(startDate)) {
             throw new TransactionException("End date should be greater than start date");
         }
+
         if (startDate.isAfter(endDate)) {
             throw new TransactionException("Start date should be less than end date");
         }
 
+        // Retrieve all transactions for the given username
         Page<Transaction> transactions = transactionRepo.findTransactionByUsername(username, pageable);
 
         if (transactions.isEmpty()) {
             throw new TransactionException("No transactions found for this user");
         }
 
+        // Filter transactions based on the given date range
         transactions.getContent().stream().filter(transaction -> {
             LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
             return transactionDate.equals(startDate) || transactionDate.equals(endDate) || (transactionDate.isAfter(startDate) && transactionDate.isBefore(endDate));
         });
 
-
         return transactions.map(TransactionUtil::toTransactionResponse);
     }
 
+    /**
+     * Retrieves all transactions for a given username with a given category.
+     *
+     * @param username The username for which all transactions are being retrieved.
+     * @param value    The category of transactions to retrieve.
+     * @param pageable The pageable object containing the page and size details.
+     * @return A page of transaction response objects containing all transactions for the given user with the given category.
+     * @throws TransactionException If the username is null, or if the category is invalid.
+     */
     public Page<TransactionResponse> getTransactionsListByCategory(String username, String value, Pageable pageable) {
 
         if (username == null) {
@@ -165,17 +245,22 @@ public class TransactionService {
         }
 
         try {
+            // Check if the category is a valid income category
             IncomeCategory incomeCategory = IncomeCategory.valueOf(value.toUpperCase());
         } catch (Exception exception) {
+            // If not, check if it's a valid expense category
             try {
                 ExpenseCategory expenseCategory = ExpenseCategory.valueOf(value.toUpperCase());
             } catch (Exception exception1) {
+                // If neither, throw exception
                 throw new TransactionException("Invalid category");
             }
         }
 
+        // Retrieve all transactions for the given username
         Page<Transaction> transactions = transactionRepo.findTransactionByUsername(username, pageable);
 
+        // Filter transactions based on the given category
         transactions.getContent().stream().filter(transaction -> {
             return !transaction.getTransactionType().equals(value);
         });
@@ -185,6 +270,14 @@ public class TransactionService {
 
     }
 
+    /**
+     * Retrieves the total amount of transactions for the given user with the given category.
+     *
+     * @param username The username for which the total amount of transactions is being retrieved.
+     * @param value    The category of transactions for which the total amount is being retrieved.
+     * @return The total amount of transactions for the given user with the given category.
+     * @throws TransactionException If the username is null, or if the category is invalid.
+     */
     public double getTransactionAmountByCategory(String username, String value) {
 
         if (username == null) {
@@ -197,22 +290,26 @@ public class TransactionService {
 
 
         try {
+            // Check if the category is a valid income category
             IncomeCategory incomeCategory = IncomeCategory.valueOf(value.toUpperCase());
         } catch (Exception exception) {
             try {
+                // If not, check if it's a valid expense category
                 ExpenseCategory expenseCategory = ExpenseCategory.valueOf(value.toUpperCase());
             } catch (Exception exception1) {
+                // If neither, throw exception
                 throw new TransactionException("Invalid category");
             }
         }
 
+        // Retrieve all transactions for the given username
         List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
 
+        // Calculate the total amount for the given category
         double amount = transactions.stream()
                 .filter(transaction -> transaction.getCategory().equalsIgnoreCase(value))
                 .mapToDouble(Transaction::getAmount)
                 .sum();
-
 
         return amount;
     }

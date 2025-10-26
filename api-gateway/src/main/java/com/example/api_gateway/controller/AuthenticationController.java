@@ -30,12 +30,12 @@ public class AuthenticationController {
 
     private final RestTemplate restTemplate;
 
+
     /**
-     * Logs in a user to the system.
+     * Login endpoint to validate user credentials and generate a JWT token.
      *
      * @param authRequest The authentication request containing username and password.
-     * @return A ResponseEntity containing a JSON Web Token (JWT) representing the user
-     * if the credentials are valid, 401 Unauthorized if not.
+     * @return A ResponseEntity containing a JWT token if the authentication is successful, 401 Unauthorized if not.
      */
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity<?> login(@RequestBody AuthRequest authRequest) {

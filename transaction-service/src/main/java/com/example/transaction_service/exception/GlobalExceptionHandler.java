@@ -9,6 +9,12 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    /**
+     * Handles exceptions of type {@link TransactionException}.
+     *
+     * @param ex The exception to be handled.
+     * @return A ResponseEntity containing an ErrorResponse with the status code set to BAD_REQUEST (400) and the error message set to the exception message.
+     */
     @ExceptionHandler(TransactionException.class)
     public ResponseEntity<?> handleTransactionException(TransactionException ex) {
         ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Transaction Error", ex.getMessage());

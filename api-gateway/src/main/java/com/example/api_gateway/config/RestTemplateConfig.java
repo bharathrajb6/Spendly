@@ -9,9 +9,9 @@ public class RestTemplateConfig {
 
 
     /**
-     * Create a {@link RestTemplate} that can be used to make HTTP requests.
+     * Returns a new instance of RestTemplate which can be used to make HTTP requests to upstream services.
      *
-     * @return a {@link RestTemplate} instance.
+     * @return a new instance of RestTemplate
      */
     @Bean
     public RestTemplate restTemplate() {

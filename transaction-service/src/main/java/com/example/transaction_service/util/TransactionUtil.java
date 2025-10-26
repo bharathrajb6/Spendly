@@ -3,18 +3,21 @@ package com.example.transaction_service.util;
 import com.example.transaction_service.dto.request.TransactionRequest;
 import com.example.transaction_service.dto.response.TransactionResponse;
 import com.example.transaction_service.model.Transaction;
+import lombok.extern.slf4j.Slf4j;
 
 import java.sql.Timestamp;
 import java.util.UUID;
 
+@Slf4j
 public class TransactionUtil {
 
+
     /**
-     * This method is used to generate a transaction object from the given request
+     * Generates a Transaction object based on the given TransactionRequest object and username.
      *
-     * @param request
-     * @param username
-     * @return
+     * @param request  The TransactionRequest object containing the details of the transaction.
+     * @param username The username of the user for which the transaction is being generated.
+     * @return A Transaction object containing the generated transaction's details.
      */
     public static Transaction generateTransaction(TransactionRequest request, String username) {
         Transaction transaction = new Transaction();
@@ -27,10 +30,17 @@ public class TransactionUtil {
         transaction.setUsername(username);
         transaction.setCategory(request.getCategory());
 
+        log.info("Generated transaction: {}", transaction);
         return transaction;
     }
 
 
+    /**
+     * Converts a Transaction object into a TransactionResponse object.
+     *
+     * @param transaction The Transaction object to be converted.
+     * @return A TransactionResponse object containing the converted transaction's details.
+     */
     public static TransactionResponse toTransactionResponse(Transaction transaction) {
         TransactionResponse response = new TransactionResponse();
 
@@ -41,6 +51,8 @@ public class TransactionUtil {
         response.setAmount(transaction.getAmount());
         response.setTransactionDate(transaction.getTransactionDate());
         response.setNotes(transaction.getNotes());
+
+        log.info("Converted Transaction to TransactionResponse: {}", response);
 
         return response;
 
