@@ -17,10 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
@@ -340,11 +337,15 @@ public class TransactionService {
         // Retrieve all transactions for the given username
         Page<TransactionResponse> transactionResponses = getAllTransactionForUser(username, pageable);
 
-        List<TransactionResponse> filteredTransactions = transactionResponses.getContent().stream().filter(transactionResponse ->
-        {
-            LocalDate transactionDate = transactionResponse.getTransactionDate().toLocalDateTime().toLocalDate();
-            return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month;
-        }).collect(Collectors.toList());
+        List<TransactionResponse> filteredTransactions = new ArrayList<>();
+
+        if (transactionResponses.getContent() != null) {
+            filteredTransactions = transactionResponses.getContent().stream().filter(transactionResponse ->
+            {
+                LocalDate transactionDate = transactionResponse.getTransactionDate().toLocalDateTime().toLocalDate();
+                return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month;
+            }).collect(Collectors.toList());
+        }
 
         return new PageImpl<>(filteredTransactions, pageable, filteredTransactions.size());
     }
