@@ -4,7 +4,6 @@ import com.example.user_service.dto.request.AuthRequest;
 import com.example.user_service.dto.request.UserRequest;
 import com.example.user_service.dto.response.UserResponse;
 import com.example.user_service.exceptions.UserException;
-import com.example.user_service.mapper.UserMapper;
 import com.example.user_service.model.User;
 import com.example.user_service.repo.UserRepo;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +21,6 @@ import static com.example.user_service.util.UserDataValidation.validateUserReque
 public class UserService {
 
     private final UserRepo userRepo;
-    private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
 
     /**
@@ -63,7 +61,14 @@ public class UserService {
             log.warn("Username already exists: {}", user.getUsername());
             throw new UserException("Already username is exist.");
         }
-        User newUser = userMapper.toUser(user);
+        User newUser = new User();
+
+        newUser.setFirstName(user.getFirstName());
+        newUser.setLastName(user.getLastName());
+        newUser.setEmail(user.getEmail());
+        newUser.setUsername(user.getUsername());
+        newUser.setContactNumber(user.getContactNumber());
+
         newUser.setPassword(passwordEncoder.encode(user.getPassword()));
         try {
             userRepo.save(newUser);
@@ -86,7 +91,13 @@ public class UserService {
         log.info("Fetching user details for username: {}", username);
         Optional<User> user = userRepo.findByUsername(username);
         if (user.isPresent()) {
-            UserResponse response = userMapper.toUserResponse(user.get());
+            UserResponse response = new UserResponse();
+            response.setUsername(username);
+            response.setEmail(user.get().getEmail());
+            response.setFirstName(user.get().getFirstName());
+            response.setLastName(user.get().getLastName());
+            response.setContactNumber(user.get().getContactNumber());
+
             log.info("User details found for username: {}", username);
             return response;
         }

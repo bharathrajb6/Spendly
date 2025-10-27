@@ -10,6 +10,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1")
 public class TransactionController {
@@ -128,4 +130,21 @@ public class TransactionController {
         return transactionService.getTransactionAmountByCategory(username, value);
     }
 
+
+    @RequestMapping(value = "/transaction/filter/month", method = RequestMethod.GET)
+    public Page<TransactionResponse> getTransactionByMonth(@RequestHeader("X-Username") String username, @RequestParam("month") int month, @RequestParam("year") int year, Pageable pageable) {
+        return transactionService.getTransactionByMonth(username, month, year, pageable);
+    }
+
+
+    @RequestMapping(value = "/transaction/total", method = RequestMethod.GET)
+    public Map<String, Double> getTotalTransactionAmountInTheMonth(@RequestHeader("X-Username") String username, @RequestParam("month") int month, @RequestParam("year") int year) {
+        return transactionService.getTotalTransactionAmountInTheMonth(username, month, year);
+    }
+
+
+    @RequestMapping(value = "/transaction/total/year", method = RequestMethod.GET)
+    public Map<String, Double> getTotalTransactionAmountInYear(@RequestHeader("X-Username") String username, @RequestParam("year") int year) {
+        return transactionService.getTotalTransactionAmountInYear(username, year);
+    }
 }

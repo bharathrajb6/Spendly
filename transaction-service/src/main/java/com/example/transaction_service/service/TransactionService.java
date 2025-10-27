@@ -10,15 +10,19 @@ import com.example.transaction_service.repo.TransactionRepo;
 import com.example.transaction_service.util.TransactionUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 
 import static com.example.transaction_service.util.TransactionUtil.generateTransaction;
 import static com.example.transaction_service.util.TransactionUtil.toTransactionResponse;
@@ -282,10 +286,12 @@ public class TransactionService {
      */
     public double getTransactionAmountByCategory(String username, String value) {
 
+        // Check if username are null
         if (username == null) {
             throw new TransactionException("Username should not be null");
         }
 
+        // Check if category is null
         if (value == null) {
             throw new TransactionException("Category should not be null");
         }
@@ -314,5 +320,103 @@ public class TransactionService {
                 .sum();
 
         return amount;
+    }
+
+
+    /**
+     * Retrieves all transactions for a given username in a given month.
+     *
+     * @param username The username for which all transactions are being retrieved.
+     * @param date     The month for which all transactions are being retrieved.
+     * @return A page of transaction response objects containing all transactions for the given user in the given month.
+     * @throws TransactionException If the username is null, or if the date is invalid.
+     */
+    public Page<TransactionResponse> getTransactionByMonth(String username, int month, int year, Pageable pageable) {
+
+        if (username == null || month == 0) {
+            throw new TransactionException("Username and date should not be null");
+        }
+
+        // Retrieve all transactions for the given username
+        Page<TransactionResponse> transactionResponses = getAllTransactionForUser(username, pageable);
+
+        List<TransactionResponse> filteredTransactions = transactionResponses.getContent().stream().filter(transactionResponse ->
+        {
+            LocalDate transactionDate = transactionResponse.getTransactionDate().toLocalDateTime().toLocalDate();
+            return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month;
+        }).collect(Collectors.toList());
+
+        return new PageImpl<>(filteredTransactions, pageable, filteredTransactions.size());
+    }
+
+    /**
+     * Retrieves the total amount of transactions for a given username in a given month.
+     *
+     * @param username The username for which the total amount of transactions is being retrieved.
+     * @param month    The month for which the total amount of transactions is being retrieved.
+     * @return The total amount of transactions for the given user in the given month.
+     * @throws TransactionException If the username is null, or if the date is invalid.
+     */
+    public Map<String, Double> getTotalTransactionAmountInTheMonth(String username, int month, int year) {
+
+        Map<String, Double> transactionList = new HashMap<>();
+
+        if (username == null || month == 0) {
+            throw new TransactionException("Username and date should not be null");
+        }
+
+        List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
+
+        double totalIncomeAmount = transactions.stream().filter(transaction -> {
+            LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
+            return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month && transaction.getTransactionType().equalsIgnoreCase("INCOME");
+        }).mapToDouble(Transaction::getAmount).sum();
+
+        double totalExpenseAmount = transactions.stream().filter(transaction -> {
+            LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
+            return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month && transaction.getTransactionType().equalsIgnoreCase("EXPENSE");
+        }).mapToDouble(Transaction::getAmount).sum();
+
+
+        transactionList.put("INCOME", totalIncomeAmount);
+        transactionList.put("EXPENSE", totalExpenseAmount);
+        transactionList.put("REMAIN", totalIncomeAmount - totalExpenseAmount);
+
+        return transactionList;
+    }
+
+    /**
+     * Retrieves the total amount of transactions for a given username in a given year.
+     *
+     * @param username The username for which the total amount of transactions is being retrieved.
+     * @param year     The year for which the total amount of transactions is being retrieved.
+     * @return A map containing the total amount of income and expense transactions for the given user in the given year.
+     * @throws TransactionException If the username is null.
+     */
+    public Map<String, Double> getTotalTransactionAmountInYear(String username, int year) {
+
+        if (username == null) {
+            throw new TransactionException("Username should not be null");
+        }
+
+        Map<String, Double> transactionList = new HashMap<>();
+
+        List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
+
+        double totalIncomeAmount = transactions.stream().filter(transaction -> {
+            LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
+            return transactionDate.getYear() == year && transaction.getTransactionType().equalsIgnoreCase("INCOME");
+        }).mapToDouble(Transaction::getAmount).sum();
+
+        double totalExpenseAmount = transactions.stream().filter(transaction -> {
+            LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
+            return transactionDate.getYear() == year && transaction.getTransactionType().equalsIgnoreCase("EXPENSE");
+        }).mapToDouble(Transaction::getAmount).sum();
+
+        transactionList.put("INCOME", totalIncomeAmount);
+        transactionList.put("EXPENSE", totalExpenseAmount);
+        transactionList.put("REMAIN", totalIncomeAmount - totalExpenseAmount);
+
+        return transactionList;
     }
 }
