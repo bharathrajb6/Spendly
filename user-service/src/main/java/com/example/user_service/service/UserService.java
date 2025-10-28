@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.util.Optional;
 
 import static com.example.user_service.util.UserDataValidation.validateUserRequest;
+import static com.example.user_service.util.UserUtility.createUserObject;
+import static com.example.user_service.util.UserUtility.toUserResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +24,7 @@ public class UserService {
 
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
+    private final RedisService redisService;
 
     /**
      * Validates user credentials by checking the username and matching the provided password.
@@ -32,12 +35,14 @@ public class UserService {
      */
     public Boolean validateUserCredentials(AuthRequest authRequest) {
         log.info("Validating user credentials for username: {}", authRequest.getUsername());
-        Optional<User> user = userRepo.findByUsername(authRequest.getUsername());
-        if (!user.isPresent()) {
-            log.warn("Username not found: {}", authRequest.getUsername());
-            throw new UserException("Username not found");
+        User user = redisService.getData(authRequest.getUsername(), User.class);
+
+        if (user == null) {
+            user = userRepo.findByUsername(authRequest.getUsername()).orElseThrow(() -> new UserException("Username not found"));
+            redisService.setData(authRequest.getUsername(), user, 3600L);
         }
-        boolean isValid = passwordEncoder.matches(authRequest.getPassword(), user.get().getPassword());
+
+        boolean isValid = passwordEncoder.matches(authRequest.getPassword(), user.getPassword());
         log.info("User credentials validation result for {}: {}", authRequest.getUsername(), isValid);
         return isValid;
     }
@@ -61,17 +66,12 @@ public class UserService {
             log.warn("Username already exists: {}", user.getUsername());
             throw new UserException("Already username is exist.");
         }
-        User newUser = new User();
-
-        newUser.setFirstName(user.getFirstName());
-        newUser.setLastName(user.getLastName());
-        newUser.setEmail(user.getEmail());
-        newUser.setUsername(user.getUsername());
-        newUser.setContactNumber(user.getContactNumber());
-
+        User newUser = createUserObject(user);
         newUser.setPassword(passwordEncoder.encode(user.getPassword()));
+
         try {
             userRepo.save(newUser);
+            redisService.setData(user.getUsername(), newUser, 3600L);
             log.info("User registered successfully: {}", user.getUsername());
         } catch (Exception exception) {
             log.error("Error saving user details for user: {}", user.getUsername(), exception);
@@ -89,20 +89,16 @@ public class UserService {
      */
     public UserResponse getUserDetails(String username) {
         log.info("Fetching user details for username: {}", username);
-        Optional<User> user = userRepo.findByUsername(username);
-        if (user.isPresent()) {
-            UserResponse response = new UserResponse();
-            response.setUsername(username);
-            response.setEmail(user.get().getEmail());
-            response.setFirstName(user.get().getFirstName());
-            response.setLastName(user.get().getLastName());
-            response.setContactNumber(user.get().getContactNumber());
 
-            log.info("User details found for username: {}", username);
-            return response;
+        User user = redisService.getData(username, User.class);
+
+        if (user == null) {
+            user = userRepo.findByUsername(username).orElseThrow(() -> new UserException("User not found with this username"));
         }
-        log.warn("User not found with username: {}", username);
-        throw new UserException("User not found with this username");
+
+        UserResponse response = toUserResponse(user);
+        log.info("User details found for username: {}", username);
+        return response;
     }
 
     /**
@@ -122,6 +118,7 @@ public class UserService {
         if (userOpt.isPresent()) {
             try {
                 userRepo.updateUserDetailsByUsername(userRequest.getUsername(), userRequest.getFirstName(), userRequest.getLastName(), userRequest.getEmail(), userRequest.getContactNumber());
+                redisService.deleteData(userRequest.getUsername());
                 log.info("User details updated successfully for username: {}", userRequest.getUsername());
             } catch (Exception exception) {
                 log.error("Error updating user details for username: {}", userRequest.getUsername(), exception);

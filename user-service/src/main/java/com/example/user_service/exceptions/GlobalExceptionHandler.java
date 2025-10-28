@@ -22,4 +22,18 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
+
+    /**
+     * Handles the CacheException, which is thrown for cache-related errors.
+     * This method catches the CacheException and returns a ResponseEntity with a
+     * custom ErrorResponse object and an HTTP status of BAD_REQUEST.
+     *
+     * @param ex The CacheException that was thrown.
+     * @return A ResponseEntity containing the error details and HTTP status.
+     */
+    @ExceptionHandler(CacheException.class)
+    public ResponseEntity<?> handleCacheException(CacheException ex) {
+        ErrorResponse errorResponse = new ErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
 }
