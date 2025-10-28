@@ -8,9 +8,9 @@ import com.example.transaction_service.model.IncomeCategory;
 import com.example.transaction_service.model.Transaction;
 import com.example.transaction_service.repo.TransactionRepo;
 import com.example.transaction_service.util.TransactionUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.DoubleStream;
 
 import static com.example.transaction_service.util.TransactionUtil.generateTransaction;
 import static com.example.transaction_service.util.TransactionUtil.toTransactionResponse;
@@ -31,6 +30,9 @@ public class TransactionService {
 
     @Autowired
     private TransactionRepo transactionRepo;
+
+    @Autowired
+    private RedisService redisService;
 
 
     /**
@@ -52,6 +54,7 @@ public class TransactionService {
         try {
             // Save the object to database
             transactionRepo.save(transaction);
+            redisService.setData(transaction.getTransactionID(), transaction, 3600L);
         } catch (Exception exception) {
             // If unable to save, throw exception
             throw new TransactionException(String.format("Unable to save transaction", exception.getMessage()));
@@ -74,14 +77,17 @@ public class TransactionService {
             throw new TransactionException("Transaction ID should not be null");
         }
 
-        // Find the transaction by its ID
-        Optional<Transaction> transaction = transactionRepo.findByTransactionID(transactionID);
+        // Fetch the transaction detail from cache
+        Transaction transaction = redisService.getData(transactionID, Transaction.class);
 
-        if (transaction.isEmpty()) {
-            throw new TransactionException("Transaction not found with this ID.");
+        // If transaction is null, then return from database
+        if (transaction == null) {
+            // Find the transaction by its ID
+            transaction = transactionRepo.findByTransactionID(transactionID).orElseThrow(() -> new TransactionException("Transaction not found with this ID."));
+            redisService.setData(transaction.getTransactionID(), transaction, 3600L);
         }
 
-        return toTransactionResponse(transaction.get());
+        return toTransactionResponse(transaction);
     }
 
 
@@ -99,14 +105,22 @@ public class TransactionService {
             throw new TransactionException("Username should not be null");
         }
 
-        // Retrieve all transactions for the given username
-        Page<Transaction> transactions = transactionRepo.findTransactionByUsername(username, pageable);
+        Object cachedData = redisService.getData(username + "-transactions", List.class);
 
-        if (transactions.isEmpty()) {
-            throw new TransactionException("No transactions found for this user");
+        List<Transaction> transactions;
+        if (cachedData != null) {
+            transactions = ((List<?>) cachedData).stream().map(item -> new ObjectMapper().convertValue(item, Transaction.class)).collect(Collectors.toList());
+        } else {
+            transactions = transactionRepo.findTransactionByUsername(username);
+            redisService.setData(username + "-transactions", transactions, 3600L);
         }
 
-        return transactions.map(TransactionUtil::toTransactionResponse);
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), transactions.size());
+
+        List<TransactionResponse> responses = transactions.subList(start, end).stream().map(TransactionUtil::toTransactionResponse).collect(Collectors.toList());
+
+        return new PageImpl<>(responses, pageable, transactions.size());
     }
 
 
@@ -137,6 +151,7 @@ public class TransactionService {
         try {
             // Update the transaction in the database
             transactionRepo.updateTransaction(request.getType(), request.getCategory(), request.getAmount(), request.getNotes(), request.getPaymentType(), request.isRecurring(), transactionID);
+            redisService.deleteData(transactionID);
         } catch (Exception exception) {
             // If unable to update, throw exception
             throw new TransactionException(exception.getMessage());
@@ -167,6 +182,7 @@ public class TransactionService {
         try {
             // Delete the transaction from the database
             transactionRepo.delete(transaction.get());
+            redisService.deleteData(transactionID);
         } catch (Exception exception) {
             // If unable to delete, throw exception
             throw new TransactionException(exception.getMessage());
@@ -264,13 +280,10 @@ public class TransactionService {
         Page<Transaction> transactions = transactionRepo.findTransactionByUsername(username, pageable);
 
         // Filter transactions based on the given category and collect results
-        List<Transaction> filteredTransactions = transactions.getContent().stream()
-                .filter(transaction -> transaction.getCategory().equals(value))
-                .collect(Collectors.toList());
+        List<Transaction> filteredTransactions = transactions.getContent().stream().filter(transaction -> transaction.getCategory().equals(value)).collect(Collectors.toList());
 
         // Convert to Page and then map to response
-        return new PageImpl<>(filteredTransactions, pageable, filteredTransactions.size())
-                .map(TransactionUtil::toTransactionResponse);
+        return new PageImpl<>(filteredTransactions, pageable, filteredTransactions.size()).map(TransactionUtil::toTransactionResponse);
     }
 
     /**
@@ -293,6 +306,11 @@ public class TransactionService {
             throw new TransactionException("Category should not be null");
         }
 
+        Double amount = redisService.getData(username + value, Double.class);
+        if (amount != null) {
+            return amount;
+        }
+
 
         try {
             // Check if the category is a valid income category
@@ -311,11 +329,9 @@ public class TransactionService {
         List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
 
         // Calculate the total amount for the given category
-        double amount = transactions.stream()
-                .filter(transaction -> transaction.getCategory().equalsIgnoreCase(value))
-                .mapToDouble(Transaction::getAmount)
-                .sum();
+        amount = transactions.stream().filter(transaction -> transaction.getCategory().equalsIgnoreCase(value)).mapToDouble(Transaction::getAmount).sum();
 
+        redisService.setData(username + value, amount, 3600L);
         return amount;
     }
 
@@ -340,8 +356,7 @@ public class TransactionService {
         List<TransactionResponse> filteredTransactions = new ArrayList<>();
 
         if (transactionResponses.getContent() != null) {
-            filteredTransactions = transactionResponses.getContent().stream().filter(transactionResponse ->
-            {
+            filteredTransactions = transactionResponses.getContent().stream().filter(transactionResponse -> {
                 LocalDate transactionDate = transactionResponse.getTransactionDate().toLocalDateTime().toLocalDate();
                 return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month;
             }).collect(Collectors.toList());
@@ -366,18 +381,24 @@ public class TransactionService {
             throw new TransactionException("Username and date should not be null");
         }
 
-        List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
+        Double totalIncomeAmount = redisService.getData(username + month + year + "INCOME", Double.class);
+        Double totalExpenseAmount = redisService.getData(username + month + year + "EXPENSE", Double.class);
 
-        double totalIncomeAmount = transactions.stream().filter(transaction -> {
-            LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
-            return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month && transaction.getTransactionType().equalsIgnoreCase("INCOME");
-        }).mapToDouble(Transaction::getAmount).sum();
+        if (totalIncomeAmount == null || totalExpenseAmount == null) {
+            List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
 
-        double totalExpenseAmount = transactions.stream().filter(transaction -> {
-            LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
-            return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month && transaction.getTransactionType().equalsIgnoreCase("EXPENSE");
-        }).mapToDouble(Transaction::getAmount).sum();
+            totalIncomeAmount = transactions.stream().filter(transaction -> {
+                LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
+                return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month && transaction.getTransactionType().equalsIgnoreCase("INCOME");
+            }).mapToDouble(Transaction::getAmount).sum();
+            redisService.setData(username + month + year + "INCOME", totalIncomeAmount, 3600L);
 
+            totalExpenseAmount = transactions.stream().filter(transaction -> {
+                LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
+                return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month && transaction.getTransactionType().equalsIgnoreCase("EXPENSE");
+            }).mapToDouble(Transaction::getAmount).sum();
+            redisService.setData(username + month + year + "EXPENSE", totalExpenseAmount, 3600L);
+        }
 
         transactionList.put("INCOME", totalIncomeAmount);
         transactionList.put("EXPENSE", totalExpenseAmount);
@@ -402,17 +423,24 @@ public class TransactionService {
 
         Map<String, Double> transactionList = new HashMap<>();
 
-        List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
+        Double totalIncomeAmount = redisService.getData(username + year + "INCOME", Double.class);
+        Double totalExpenseAmount = redisService.getData(username + year + "EXPENSE", Double.class);
 
-        double totalIncomeAmount = transactions.stream().filter(transaction -> {
-            LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
-            return transactionDate.getYear() == year && transaction.getTransactionType().equalsIgnoreCase("INCOME");
-        }).mapToDouble(Transaction::getAmount).sum();
+        if (totalIncomeAmount == null || totalExpenseAmount == null) {
+            List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
 
-        double totalExpenseAmount = transactions.stream().filter(transaction -> {
-            LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
-            return transactionDate.getYear() == year && transaction.getTransactionType().equalsIgnoreCase("EXPENSE");
-        }).mapToDouble(Transaction::getAmount).sum();
+            totalIncomeAmount = transactions.stream().filter(transaction -> {
+                LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
+                return transactionDate.getYear() == year && transaction.getTransactionType().equalsIgnoreCase("INCOME");
+            }).mapToDouble(Transaction::getAmount).sum();
+            redisService.setData(username + year + "INCOME", totalIncomeAmount, 3600L);
+
+            totalExpenseAmount = transactions.stream().filter(transaction -> {
+                LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
+                return transactionDate.getYear() == year && transaction.getTransactionType().equalsIgnoreCase("EXPENSE");
+            }).mapToDouble(Transaction::getAmount).sum();
+            redisService.setData(username + year + "EXPENSE", totalExpenseAmount, 3600L);
+        }
 
         transactionList.put("INCOME", totalIncomeAmount);
         transactionList.put("EXPENSE", totalExpenseAmount);

@@ -21,4 +21,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * Handles exceptions of type {@link CacheException}.
+     *
+     * @param ex The exception to be handled.
+     * @return A ResponseEntity containing an ErrorResponse with the status code set to BAD_REQUEST (400) and the error message set to the exception message.
+     */
+    @ExceptionHandler(CacheException.class)
+    public ResponseEntity<?> handleCacheException(CacheException ex) {
+        ErrorResponse errorResponse = new ErrorResponse(HttpStatus.BAD_REQUEST.value(), "Cache Error", ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
 }
