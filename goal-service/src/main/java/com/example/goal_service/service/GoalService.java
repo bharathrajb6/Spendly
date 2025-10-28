@@ -19,6 +19,9 @@ public class GoalService {
     @Autowired
     private GoalRepo goalRepo;
 
+    @Autowired
+    private RedisService redisService;
+
 
     /**
      * Add a new goal
@@ -42,6 +45,7 @@ public class GoalService {
         try {
             log.info("Saving goal to database: {}", goal);
             goalRepo.save(goal);
+            redisService.setData(goal.getGoalId(), goal, 3600L);
         } catch (Exception exception) {
             log.error("Error while saving goal: ", exception);
             throw new GoalException("Error while saving goal", exception);
@@ -62,9 +66,15 @@ public class GoalService {
     public GoalResponse getGoalDetails(String goalId) {
         log.info("Getting the details of a goal with id: {}", goalId);
 
-        // Get the goal from the database
-        Goal goal = goalRepo.findByGoalId(goalId)
-                .orElseThrow(() -> new GoalException("Goal not found"));
+        // Get the goal data from cache
+        Goal goal = redisService.getData(goalId, Goal.class);
+
+        if (goal == null) {
+            // Get the goal from the database
+            goal = goalRepo.findByGoalId(goalId)
+                    .orElseThrow(() -> new GoalException("Goal not found"));
+            redisService.setData(goalId, goal, 3600L);
+        }
 
         // Convert the goal object to a goal response object
         log.info("Converting goal object to a goal response object: {}", goal);
@@ -97,6 +107,7 @@ public class GoalService {
             log.info("Updating goal details: {}", request);
             // Update the goal details
             goalRepo.updateGoalDetails(request.getGoalName(), request.getTargetAmount(), request.getDeadline(), request.getStatus(), goalId);
+            redisService.deleteData(goalId);
         } catch (Exception exception) {
             log.error("Error while updating goal: ", exception);
             throw new GoalException("Error while updating goal");
@@ -131,6 +142,7 @@ public class GoalService {
             // Delete the goal
             log.info("Deleting goal: {}", goal);
             goalRepo.delete(goal);
+            redisService.deleteData(goalId);
         } catch (Exception exception) {
             log.error("Error while deleting goal: {}", exception);
             throw new GoalException("Error while deleting goal", exception);
