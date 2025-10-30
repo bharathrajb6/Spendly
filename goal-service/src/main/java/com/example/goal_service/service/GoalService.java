@@ -4,10 +4,15 @@ import com.example.goal_service.dto.request.GoalRequest;
 import com.example.goal_service.dto.response.GoalResponse;
 import com.example.goal_service.exception.GoalException;
 import com.example.goal_service.model.Goal;
+import com.example.goal_service.model.TransactionDto;
 import com.example.goal_service.repo.GoalRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
+import java.util.Objects;
 
 import static com.example.goal_service.util.GoalUtils.*;
 import static com.example.goal_service.util.GoalValidator.validateGoal;
@@ -41,6 +46,10 @@ public class GoalService {
         Goal goal = createGoal(request);
         goal.setUsername(username);
 
+        double savedAmount = getSavingsAmountFromExistingGoal(username);
+        if (savedAmount != 0) {
+            goal.setSavedAmount(savedAmount);
+        }
         // Save the goal to the database
         try {
             log.info("Saving goal to database: {}", goal);
@@ -53,7 +62,6 @@ public class GoalService {
 
         log.info("Goal saved successfully: {}", goal.getGoalId());
         return getGoalDetails(goal.getGoalId());
-
     }
 
     /**
@@ -71,8 +79,7 @@ public class GoalService {
 
         if (goal == null) {
             // Get the goal from the database
-            goal = goalRepo.findByGoalId(goalId)
-                    .orElseThrow(() -> new GoalException("Goal not found"));
+            goal = goalRepo.findByGoalId(goalId).orElseThrow(() -> new GoalException("Goal not found"));
             redisService.setData(goalId, goal, 3600L);
         }
 
@@ -100,8 +107,13 @@ public class GoalService {
         }
 
         // Get the goal from the database
-        Goal goal = goalRepo.findByGoalId(goalId)
-                .orElseThrow(() -> new GoalException("Goal not found"));
+        boolean isGoalFound = goalRepo.isGoalFound(goalId);
+        if (!isGoalFound) {
+            throw new GoalException("Goal not found");
+        }
+
+        // Validate the goal data
+        validateGoal(request);
 
         try {
             log.info("Updating goal details: {}", request);
@@ -130,22 +142,96 @@ public class GoalService {
 
         // Check the goal id
         if (goalId == null || goalId.isEmpty()) {
-            log.error("Goal id cannot be empty");
+            log.error("Goal id cannot be empty.");
             throw new GoalException("Goal id cannot be empty");
         }
 
-        // Get the goal from the database
-        Goal goal = goalRepo.findByGoalId(goalId)
-                .orElseThrow(() -> new GoalException("Goal not found"));
+
+        if (!goalRepo.isGoalFound(goalId)) {
+            throw new GoalException("Goal not found");
+        }
 
         try {
             // Delete the goal
-            log.info("Deleting goal: {}", goal);
-            goalRepo.delete(goal);
+            log.info("Deleting goal ID : {}", goalId);
+            goalRepo.deleteById(goalId);
             redisService.deleteData(goalId);
         } catch (Exception exception) {
-            log.error("Error while deleting goal: {}", exception);
-            throw new GoalException("Error while deleting goal", exception);
+            log.error("Error while deleting goal with id : {}", exception.getMessage());
+            throw new GoalException("Error while deleting goal with id : " + exception.getMessage());
         }
+    }
+
+
+    /**
+     * Listens to Kafka topic "transaction-added" and updates the saved amount of all goals for the given user.
+     * If no goal is present for the user, the function does nothing.
+     * For each goal, the saved amount is updated based on the transaction type and amount.
+     * The updated saved amount and percentage for each goal is then saved to the database.
+     *
+     * @param transaction The transaction object received from Kafka
+     */
+    @KafkaListener(topics = "transaction-added", groupId = "goal-service", containerFactory = "transactionDataKafkaListenerContainerFactory")
+    public void updateGoalAmountAfterTransaction(TransactionDto transaction) {
+        log.info("Received transaction: {}", transaction);
+
+        // Check if any goal is present for this user
+        boolean isAnyGoalPresentForThisUser = goalRepo.isAnyGoalPrentForThisUser(transaction.getUsername());
+
+        // If no goal is present, return
+        if (!isAnyGoalPresentForThisUser) {
+            log.info("No goal present for user: {}", transaction.getUsername());
+            return;
+        }
+
+        // Get all the goals for this user
+        List<Goal> goals = goalRepo.findGoalsBasedOnStatusForUser(transaction.getUsername(), "Active");
+
+        // Update the saved amount for each goal
+        for (Goal goal : goals) {
+            double updatedSavedAmount = 0;
+            if (Objects.equals(transaction.getTransactionType(), "INCOME")) {
+                log.info("Updating saved amount for goal: {} with income amount: {}", goal.getGoalId(), transaction.getNewAmount());
+                updatedSavedAmount = goal.getSavedAmount() + transaction.getNewAmount();
+            } else if (Objects.equals(transaction.getTransactionType(), "EXPENSE")) {
+                log.info("Updating saved amount for goal: {} with expense amount: {}", goal.getGoalId(), transaction.getNewAmount());
+                updatedSavedAmount = goal.getSavedAmount() - transaction.getNewAmount();
+            }
+            // Update the saved amount and percentage for this goal
+            goalRepo.updateGoalSavedAmountAndPercentage(updatedSavedAmount, calculatePercentage(updatedSavedAmount, goal.getTargetAmount()), goal.getGoalId());
+            redisService.deleteData(goal.getGoalId());
+            updateGoalStatus(goal.getGoalId());
+            log.info("Updated saved amount and percentage for goal: {}", goal.getGoalId());
+        }
+    }
+
+    public void updateGoalStatus(String goalId) {
+        if (goalId == null || goalId.isEmpty()) {
+            return;
+        }
+
+        Goal goal = goalRepo.findByGoalId(goalId).orElseThrow(() -> new GoalException("Goal not found"));
+        if (goal.getSavedAmount() >= goal.getTargetAmount()) {
+            goalRepo.updateGoalDetails(goal.getGoalName(), goal.getTargetAmount(), goal.getDeadline(), "Completed", goalId);
+        }
+    }
+
+
+    private double getSavingsAmountFromExistingGoal(String username) {
+        boolean isAnyGoalFoundForThisUser = goalRepo.isAnyGoalPrentForThisUser(username);
+        if (!isAnyGoalFoundForThisUser) {
+            // TODO : Need to handle the creating a first goal for the user.
+            log.warn("No goal found for this user");
+            return 0;
+        }
+
+        // Get all the goals for this user
+        List<Goal> goals = goalRepo.findGoalsBasedOnStatusForUser(username, "Active");
+
+        // Take first goal
+        Goal existingGoal = goals.get(0);
+
+        // Return the saved amount of the first goal
+        return existingGoal.getSavedAmount();
     }
 }

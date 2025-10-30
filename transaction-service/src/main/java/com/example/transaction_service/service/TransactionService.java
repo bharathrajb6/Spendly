@@ -3,11 +3,13 @@ package com.example.transaction_service.service;
 import com.example.transaction_service.dto.request.TransactionRequest;
 import com.example.transaction_service.dto.response.TransactionResponse;
 import com.example.transaction_service.exception.TransactionException;
+import com.example.transaction_service.kafka.EventProducer;
 import com.example.transaction_service.model.ExpenseCategory;
 import com.example.transaction_service.model.IncomeCategory;
 import com.example.transaction_service.model.Transaction;
 import com.example.transaction_service.repo.TransactionRepo;
 import com.example.transaction_service.util.TransactionUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,7 @@ import java.util.stream.Collectors;
 import static com.example.transaction_service.util.TransactionUtil.generateTransaction;
 import static com.example.transaction_service.util.TransactionUtil.toTransactionResponse;
 import static com.example.transaction_service.validation.TransactionValidation.validateTransaction;
+import static com.example.transaction_service.kafka.KafkaTopics.TRANSACTION_ADDED;
 
 @Service
 @Slf4j
@@ -33,6 +36,15 @@ public class TransactionService {
 
     @Autowired
     private RedisService redisService;
+
+    @Autowired
+    private EventProducer eventProducer;
+
+    @Autowired
+    private TransactionUtil transactionUtil;
+
+    @Autowired
+    private SavingsService savingsService;
 
 
     /**
@@ -59,6 +71,15 @@ public class TransactionService {
             // If unable to save, throw exception
             throw new TransactionException(String.format("Unable to save transaction", exception.getMessage()));
         }
+
+        double savedAmount = savingsService.updateSaving(transaction);
+        String json = null;
+        try {
+            json = transactionUtil.generateTransactionData(transaction, 0, savedAmount);
+        } catch (JsonProcessingException exception) {
+            throw new TransactionException(exception.getMessage());
+        }
+        eventProducer.sendTopic(TRANSACTION_ADDED, json);
 
         return getTransaction(transaction.getTransactionID());
     }

@@ -36,6 +36,9 @@ public class Goal {
     @Column(name = "deadline", nullable = false)
     private Date deadline;
 
+    @Column(name = "progress_percent", nullable = false)
+    private double progressPercent;
+
     @Column(name = "status", nullable = false)
     private String status;
 }

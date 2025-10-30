@@ -2,15 +2,24 @@ package com.example.transaction_service.util;
 
 import com.example.transaction_service.dto.request.TransactionRequest;
 import com.example.transaction_service.dto.response.TransactionResponse;
+import com.example.transaction_service.kafka.TransactionDto;
+import com.example.transaction_service.model.Savings;
 import com.example.transaction_service.model.Transaction;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.sql.Timestamp;
 import java.util.UUID;
 
+@Component
 @Slf4j
+@RequiredArgsConstructor
 public class TransactionUtil {
 
+    private final ObjectMapper objectMapper;
 
     /**
      * Generates a Transaction object based on the given TransactionRequest object and username.
@@ -60,5 +69,17 @@ public class TransactionUtil {
 
         return response;
 
+    }
+
+    public String generateTransactionData(Transaction transaction, double oldAmount, double savingAmount) throws JsonProcessingException {
+
+        TransactionDto transactionDto = new TransactionDto();
+        transactionDto.setUsername(transaction.getUsername());
+        transactionDto.setTransactionType(transaction.getTransactionType());
+        transactionDto.setOldAmount(oldAmount);
+        transactionDto.setNewAmount(transaction.getAmount());
+        transactionDto.setSavingsAmount(savingAmount);
+
+        return objectMapper.writeValueAsString(transactionDto);
     }
 }

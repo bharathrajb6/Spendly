@@ -32,4 +32,8 @@ public class GoalUtils {
 
         return goal;
     }
+
+    public static double calculatePercentage(double savedAmount, double targetAmount) {
+        return (savedAmount / targetAmount) * 100;
+    }
 }

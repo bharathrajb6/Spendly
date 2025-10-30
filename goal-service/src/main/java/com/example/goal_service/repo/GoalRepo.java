@@ -38,4 +38,20 @@ public interface GoalRepo extends JpaRepository<Goal, String> {
     @Transactional
     @Query("UPDATE Goal g SET g.goalName = ?1, g.targetAmount = ?2, g.deadline = ?3, g.status = ?4 WHERE g.goalId = ?5")
     void updateGoalDetails(String goalName, double targetAmount, Date deadline, String status, String goalId);
+
+    @Query("SELECT CASE WHEN COUNT(g) > 0 THEN true ELSE false END FROM Goal g WHERE g.username = ?1")
+    boolean isAnyGoalPrentForThisUser(String username);
+
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE Goal g SET g.savedAmount = ?1, g.progressPercent = ?2 WHERE g.goalId = ?3")
+    void updateGoalSavedAmountAndPercentage(double savedAmount, double percentage, String goalId);
+
+
+    @Query("SELECT g FROM Goal g WHERE g.username = ?1 and g.status = ?2")
+    List<Goal> findGoalsBasedOnStatusForUser(String username, String status);
+
+    @Query("SELECT CASE WHEN COUNT(g) > 0 THEN true ELSE false END FROM Goal g WHERE g.goalId = ?1")
+    boolean isGoalFound(String goalId);
 }
