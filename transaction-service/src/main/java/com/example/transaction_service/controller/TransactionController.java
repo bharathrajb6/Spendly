@@ -3,6 +3,7 @@ package com.example.transaction_service.controller;
 import com.example.transaction_service.dto.request.TransactionRequest;
 import com.example.transaction_service.dto.response.TransactionResponse;
 import com.example.transaction_service.exception.TransactionException;
+import com.example.transaction_service.service.SavingsService;
 import com.example.transaction_service.service.TransactionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -18,6 +19,9 @@ public class TransactionController {
 
     @Autowired
     private TransactionService transactionService;
+
+    @Autowired
+    private SavingsService savingsService;
 
 
     /**
@@ -146,5 +150,10 @@ public class TransactionController {
     @RequestMapping(value = "/transaction/total/year", method = RequestMethod.GET)
     public Map<String, Double> getTotalTransactionAmountInYear(@RequestHeader("X-Username") String username, @RequestParam("year") int year) {
         return transactionService.getTotalTransactionAmountInYear(username, year);
+    }
+
+    @RequestMapping(value = "/savings/{username}", method = RequestMethod.GET)
+    public Double getSavingsForUser(@PathVariable String username) {
+        return savingsService.getSavingsData(username);
     }
 }

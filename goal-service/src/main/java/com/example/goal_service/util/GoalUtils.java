@@ -29,7 +29,6 @@ public class GoalUtils {
         goal.setDeadline(request.getDeadline());
         goal.setStatus(request.getStatus());
         goal.setSavedAmount(0);
-
         return goal;
     }
 

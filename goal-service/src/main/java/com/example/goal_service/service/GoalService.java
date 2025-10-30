@@ -8,8 +8,12 @@ import com.example.goal_service.model.TransactionDto;
 import com.example.goal_service.repo.GoalRepo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Objects;
@@ -26,6 +30,9 @@ public class GoalService {
 
     @Autowired
     private RedisService redisService;
+
+    @Autowired
+    private RestTemplate restTemplate;
 
 
     /**
@@ -50,6 +57,8 @@ public class GoalService {
         if (savedAmount != 0) {
             goal.setSavedAmount(savedAmount);
         }
+        goal.setProgressPercent(calculatePercentage(goal.getSavedAmount(), goal.getTargetAmount()));
+
         // Save the goal to the database
         try {
             log.info("Saving goal to database: {}", goal);
@@ -220,18 +229,28 @@ public class GoalService {
     private double getSavingsAmountFromExistingGoal(String username) {
         boolean isAnyGoalFoundForThisUser = goalRepo.isAnyGoalPrentForThisUser(username);
         if (!isAnyGoalFoundForThisUser) {
-            // TODO : Need to handle the creating a first goal for the user.
             log.warn("No goal found for this user");
-            return 0;
+            ResponseEntity<Double> validationResponse;
+            String url = "http://localhost:8082/api/v1/savings/" + username;
+            try {
+                validationResponse = restTemplate.getForEntity(url, Double.class);
+            } catch (RestClientResponseException exception) {
+                throw new GoalException(exception.getMessage());
+            } catch (ResourceAccessException exception) {
+                log.error("Upstream user-service unavailable", exception);
+                throw new GoalException(exception.getMessage());
+            }
+            if (validationResponse.getBody() != null && validationResponse.getBody() != 0.0) {
+                return validationResponse.getBody();
+            }
+            return 0.0;
+        } else {
+            // Get all the goals for this user
+            List<Goal> goals = goalRepo.findGoalsBasedOnStatusForUser(username, "Active");
+            // Take first goal
+            Goal existingGoal = goals.get(0);
+            // Return the saved amount of the first goal
+            return existingGoal.getSavedAmount();
         }
-
-        // Get all the goals for this user
-        List<Goal> goals = goalRepo.findGoalsBasedOnStatusForUser(username, "Active");
-
-        // Take first goal
-        Goal existingGoal = goals.get(0);
-
-        // Return the saved amount of the first goal
-        return existingGoal.getSavedAmount();
     }
 }

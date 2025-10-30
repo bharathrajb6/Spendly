@@ -53,4 +53,14 @@ public class SavingsService {
             return existingSaving.getSavedAmount();
         }
     }
+
+    public Double getSavingsData(String username) {
+
+        Optional<Savings> savings = savingsRepo.findByUsername(username);
+        if (savings.isEmpty()) {
+            return 0.0;
+        }
+        return savings.get().getSavedAmount();
+
+    }
 }
