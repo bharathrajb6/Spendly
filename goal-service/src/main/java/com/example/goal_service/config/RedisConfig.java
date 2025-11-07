@@ -1,13 +1,16 @@
 package com.example.goal_service.config;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
+import org.springframework.stereotype.Service;
 
 @Configuration
+@Slf4j
 public class RedisConfig {
 
     /**
@@ -20,10 +23,15 @@ public class RedisConfig {
      */
     @Bean
     public RedisTemplate redisTemplate(RedisConnectionFactory connectionFactory) {
+        log.info("Initializing RedisTemplate for goal-service");
         RedisTemplate redisTemplate = new RedisTemplate();
+        log.info("Setting connection factory for RedisTemplate");
         redisTemplate.setConnectionFactory(connectionFactory);
+        log.info("Setting value serializer for RedisTemplate to StringRedisSerializer");
         redisTemplate.setValueSerializer(new StringRedisSerializer());
+        log.info("Setting key serializer for RedisTemplate to StringRedisSerializer");
         redisTemplate.setKeySerializer(new StringRedisSerializer());
+        log.info("Initialized RedisTemplate for goal-service");
         return redisTemplate;
     }
 }

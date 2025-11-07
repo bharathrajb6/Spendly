@@ -4,6 +4,7 @@ import com.example.goal_service.dto.request.GoalRequest;
 import com.example.goal_service.dto.response.GoalResponse;
 import com.example.goal_service.exception.GoalException;
 import com.example.goal_service.model.Goal;
+import com.example.goal_service.model.GoalStatus;
 import com.example.goal_service.model.TransactionDto;
 import com.example.goal_service.repo.GoalRepo;
 import lombok.extern.slf4j.Slf4j;
@@ -47,29 +48,36 @@ public class GoalService {
         log.info("Adding a new goal for user: {}", username);
 
         // Validate the request
+        log.info("Validating the goal request: {}", request);
         validateGoal(request);
 
         // Create a new goal object
+        log.info("Creating a new goal object from the request: {}", request);
         Goal goal = createGoal(request);
         goal.setUsername(username);
 
         double savedAmount = getSavingsAmountFromExistingGoal(username);
+        log.info("Getting the saved amount from the existing goal for user: {} - Saved amount: {}", username, savedAmount);
         if (savedAmount != 0) {
             goal.setSavedAmount(savedAmount);
         }
+
+        log.info("Calculating the progress percentage for the goal: {}", goal);
         goal.setProgressPercent(calculatePercentage(goal.getSavedAmount(), goal.getTargetAmount()));
 
         // Save the goal to the database
+        log.info("Saving goal to database: {}", goal);
         try {
-            log.info("Saving goal to database: {}", goal);
             goalRepo.save(goal);
+            log.info("Goal saved successfully to the database: {}", goal.getGoalId());
             redisService.setData(goal.getGoalId(), goal, 3600L);
+            log.info("Goal data saved to the cache: {}", goal.getGoalId());
         } catch (Exception exception) {
             log.error("Error while saving goal: ", exception);
             throw new GoalException("Error while saving goal", exception);
         }
 
-        log.info("Goal saved successfully: {}", goal.getGoalId());
+        log.info("Returning the goal response: {}", goal.getGoalId());
         return getGoalDetails(goal.getGoalId());
     }
 
@@ -124,10 +132,18 @@ public class GoalService {
         // Validate the goal data
         validateGoal(request);
 
+        GoalStatus goalStatus;
+        try {
+            goalStatus = GoalStatus.valueOf(request.getStatus());
+        } catch (Exception exception) {
+            throw new GoalException("Invalid status");
+        }
+
+
         try {
             log.info("Updating goal details: {}", request);
             // Update the goal details
-            goalRepo.updateGoalDetails(request.getGoalName(), request.getTargetAmount(), request.getDeadline(), request.getStatus(), goalId);
+            goalRepo.updateGoalDetails(request.getGoalName(), request.getTargetAmount(), request.getDeadline(), goalStatus, goalId);
             redisService.deleteData(goalId);
         } catch (Exception exception) {
             log.error("Error while updating goal: ", exception);
@@ -194,7 +210,7 @@ public class GoalService {
         }
 
         // Get all the goals for this user
-        List<Goal> goals = goalRepo.findGoalsBasedOnStatusForUser(transaction.getUsername(), "Active");
+        List<Goal> goals = goalRepo.findGoalsBasedOnStatusForUser(transaction.getUsername(), GoalStatus.ACTIVE);
 
         // Update the saved amount for each goal
         for (Goal goal : goals) {
@@ -214,6 +230,12 @@ public class GoalService {
         }
     }
 
+    /**
+     * Updates the status of the goal with the given id to "Completed" if the saved amount is greater than or equal to the target amount.
+     * If the goal is not found, a GoalException is thrown.
+     *
+     * @param goalId the id of the goal to update
+     */
     public void updateGoalStatus(String goalId) {
         if (goalId == null || goalId.isEmpty()) {
             return;
@@ -221,11 +243,22 @@ public class GoalService {
 
         Goal goal = goalRepo.findByGoalId(goalId).orElseThrow(() -> new GoalException("Goal not found"));
         if (goal.getSavedAmount() >= goal.getTargetAmount()) {
-            goalRepo.updateGoalDetails(goal.getGoalName(), goal.getTargetAmount(), goal.getDeadline(), "Completed", goalId);
+            goalRepo.updateGoalDetails(goal.getGoalName(), goal.getTargetAmount(), goal.getDeadline(), GoalStatus.COMPLETED, goalId);
         }
     }
 
 
+    /**
+     * Returns the saved amount of the first goal found for the given user.
+     * If no goal is found, the method will attempt to call the user-service to fetch the savings amount.
+     * If the user-service is unavailable, the method will throw a GoalException.
+     * If the user-service returns a non-zero and non-null savings amount, the method will return that amount.
+     * Otherwise, the method will return 0.0.
+     *
+     * @param username the username of the user
+     * @return the saved amount of the first goal found for the given user
+     * @throws GoalException if the user-service is unavailable or returns an invalid savings amount
+     */
     private double getSavingsAmountFromExistingGoal(String username) {
         boolean isAnyGoalFoundForThisUser = goalRepo.isAnyGoalPrentForThisUser(username);
         if (!isAnyGoalFoundForThisUser) {
@@ -246,7 +279,7 @@ public class GoalService {
             return 0.0;
         } else {
             // Get all the goals for this user
-            List<Goal> goals = goalRepo.findGoalsBasedOnStatusForUser(username, "Active");
+            List<Goal> goals = goalRepo.findGoalsBasedOnStatusForUser(username, GoalStatus.ACTIVE);
             // Take first goal
             Goal existingGoal = goals.get(0);
             // Return the saved amount of the first goal

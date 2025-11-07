@@ -19,6 +19,13 @@ public class RedisService {
     private final RedisTemplate redisTemplate;
     public ObjectMapper objectMapper = null;
 
+    /**
+     * Get an instance of the ObjectMapper.
+     * If the ObjectMapper instance has not been set, a new instance is returned.
+     * If the ObjectMapper instance has been set, the existing instance is returned.
+     *
+     * @return the ObjectMapper instance
+     */
     public ObjectMapper getObjectMapper() {
         if (objectMapper == null) {
             return new ObjectMapper();
@@ -27,14 +34,14 @@ public class RedisService {
     }
 
     /**
-     * Get data from Redis Cache
+     * Get data from Redis Cache.
      *
-     * @param key
-     * @param responseClass
-     * @param <T>
-     * @return
+     * @param key           the key of the data to retrieve from Redis
+     * @param responseClass the class of the object to convert the data to
+     * @param <T>           the type of the object to convert the data to
+     * @return the data from Redis, converted to an object of type T
+     * @throws CacheException if there is an error while getting data from Redis
      */
-
     public <T> T getData(String key, Class<T> responseClass) {
         try {
             Object data = redisTemplate.opsForValue().get(key);
@@ -53,14 +60,15 @@ public class RedisService {
         return null;
     }
 
-    /**
-     * Set data in Redis Cache
-     *
-     * @param key
-     * @param object
-     * @param ttl
-     */
 
+    /**
+     * Set data in Redis Cache.
+     *
+     * @param key    the key of the data to set in Redis
+     * @param object the object to convert to JSON and store in Redis
+     * @param ttl    the time to live of the data in seconds
+     * @throws CacheException if there is an error while setting data in Redis
+     */
     public void setData(String key, Object object, Long ttl) {
         try {
             ObjectMapper mapper = getObjectMapper();
@@ -71,10 +79,12 @@ public class RedisService {
         }
     }
 
+
     /**
-     * Delete data from Redis Cache
+     * Delete data from Redis Cache.
      *
-     * @param key
+     * @param key the key of the data to delete from Redis
+     * @throws CacheException if there is an error while deleting data from Redis
      */
     public void deleteData(String key) {
         try {
