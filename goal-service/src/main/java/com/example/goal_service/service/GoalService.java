@@ -17,7 +17,6 @@ import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
-import java.util.Objects;
 
 import static com.example.goal_service.util.GoalUtils.*;
 import static com.example.goal_service.util.GoalValidator.validateGoal;
@@ -64,6 +63,10 @@ public class GoalService {
 
         log.info("Calculating the progress percentage for the goal: {}", goal);
         goal.setProgressPercent(calculatePercentage(goal.getSavedAmount(), goal.getTargetAmount()));
+
+        if (goal.getProgressPercent() >= 100) {
+            goal.setStatus(GoalStatus.COMPLETED);
+        }
 
         // Save the goal to the database
         log.info("Saving goal to database: {}", goal);
@@ -196,7 +199,7 @@ public class GoalService {
      *
      * @param transaction The transaction object received from Kafka
      */
-    @KafkaListener(topics = "transaction-added", groupId = "goal-service", containerFactory = "transactionDataKafkaListenerContainerFactory")
+    @KafkaListener(topics = "transaction", groupId = "goal-service", containerFactory = "transactionDataKafkaListenerContainerFactory")
     public void updateGoalAmountAfterTransaction(TransactionDto transaction) {
         log.info("Received transaction: {}", transaction);
 
@@ -214,16 +217,8 @@ public class GoalService {
 
         // Update the saved amount for each goal
         for (Goal goal : goals) {
-            double updatedSavedAmount = 0;
-            if (Objects.equals(transaction.getTransactionType(), "INCOME")) {
-                log.info("Updating saved amount for goal: {} with income amount: {}", goal.getGoalId(), transaction.getNewAmount());
-                updatedSavedAmount = goal.getSavedAmount() + transaction.getNewAmount();
-            } else if (Objects.equals(transaction.getTransactionType(), "EXPENSE")) {
-                log.info("Updating saved amount for goal: {} with expense amount: {}", goal.getGoalId(), transaction.getNewAmount());
-                updatedSavedAmount = goal.getSavedAmount() - transaction.getNewAmount();
-            }
             // Update the saved amount and percentage for this goal
-            goalRepo.updateGoalSavedAmountAndPercentage(updatedSavedAmount, calculatePercentage(updatedSavedAmount, goal.getTargetAmount()), goal.getGoalId());
+            goalRepo.updateGoalSavedAmountAndPercentage(transaction.getSavingsAmount(), calculatePercentage(transaction.getSavingsAmount(), goal.getTargetAmount()), goal.getGoalId());
             redisService.deleteData(goal.getGoalId());
             updateGoalStatus(goal.getGoalId());
             log.info("Updated saved amount and percentage for goal: {}", goal.getGoalId());

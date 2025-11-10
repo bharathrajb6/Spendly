@@ -10,8 +10,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class TransactionDto {
     private String username;
-    private String transactionType;
-    private double oldAmount;
-    private double newAmount;
     private double savingsAmount;
 }

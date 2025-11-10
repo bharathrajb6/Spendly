@@ -1,5 +1,6 @@
 package com.example.transaction_service.service;
 
+import com.example.transaction_service.exception.TransactionException;
 import com.example.transaction_service.model.Savings;
 import com.example.transaction_service.model.Transaction;
 import com.example.transaction_service.repo.SavingsRepo;
@@ -29,7 +30,7 @@ public class SavingsService {
             if (Objects.equals(transaction.getTransactionType(), "INCOME")) {
                 newSavings.setSavedAmount(transaction.getAmount());
             } else {
-                newSavings.setSavedAmount(0);
+                newSavings.setSavedAmount(0 - transaction.getAmount());
             }
             try {
                 savingsRepo.save(newSavings);
@@ -62,5 +63,76 @@ public class SavingsService {
         }
         return savings.get().getSavedAmount();
 
+    }
+
+    /**
+     * Updates the savings data after a transaction update.
+     *
+     * @param username       The username of the user for which the savings is being updated.
+     * @param oldTransaction The old transaction for which the savings is being updated.
+     * @param newTransaction The new transaction for which the savings is being updated.
+     * @return The updated savings amount.
+     */
+    public double updateSavingsDataAfterTransactionUpdate(String username, Transaction oldTransaction, Transaction newTransaction) {
+        Savings savings = savingsRepo.findByUsername(username).orElseThrow(() -> new TransactionException("Savings not found for this user."));
+
+        double currentSavings = savings.getSavedAmount();
+        double oldAmount = oldTransaction.getAmount();
+        double newAmount = newTransaction.getAmount();
+
+        String oldType = oldTransaction.getTransactionType();
+        String newType = newTransaction.getTransactionType();
+
+        double updatedSavings = currentSavings;
+
+        // Case 1: Same transaction type
+        if (oldType.equalsIgnoreCase(newType)) {
+            if (oldType.equalsIgnoreCase("INCOME")) {
+                // Adjust based on income change
+                updatedSavings = currentSavings - oldAmount + newAmount;
+            } else if (oldType.equalsIgnoreCase("EXPENSE")) {
+                // Adjust based on expense change
+                updatedSavings = currentSavings + oldAmount - newAmount;
+            }
+        }
+        // Case 2: Type changed
+        else {
+            if (oldType.equalsIgnoreCase("INCOME") && newType.equalsIgnoreCase("EXPENSE")) {
+                // Reverse old income and apply new expense
+                updatedSavings = currentSavings - oldAmount - newAmount;
+            } else if (oldType.equalsIgnoreCase("EXPENSE") && newType.equalsIgnoreCase("INCOME")) {
+                // Reverse old expense and apply new income
+                updatedSavings = currentSavings + oldAmount + newAmount;
+            }
+        }
+
+        try {
+            savingsRepo.updateSavingAmount(updatedSavings, username);
+        } catch (Exception exception) {
+            throw new TransactionException("Unable to update the saving amount for the user");
+        }
+
+        return updatedSavings;
+    }
+
+    public double updateSavingsAfterTransactionDelete(String username, Transaction transaction) {
+        Savings savings = savingsRepo.findByUsername(username).orElseThrow(() -> new TransactionException("Savings not found for this user."));
+
+        double currentSavings = savings.getSavedAmount();
+        double updatedSavings = 0;
+
+        if (transaction.getTransactionType().equals("INCOME")) {
+            updatedSavings = currentSavings - transaction.getAmount();
+        } else {
+            updatedSavings = currentSavings + transaction.getAmount();
+        }
+
+        try {
+            savingsRepo.updateSavingAmount(updatedSavings, username);
+        } catch (Exception exception) {
+            throw new TransactionException("Unable to u[date the savings for the user.");
+        }
+
+        return updatedSavings;
     }
 }

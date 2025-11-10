@@ -22,10 +22,10 @@ import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.example.transaction_service.kafka.KafkaTopics.TRANSACTION;
 import static com.example.transaction_service.util.TransactionUtil.generateTransaction;
 import static com.example.transaction_service.util.TransactionUtil.toTransactionResponse;
 import static com.example.transaction_service.validation.TransactionValidation.validateTransaction;
-import static com.example.transaction_service.kafka.KafkaTopics.TRANSACTION_ADDED;
 
 @Service
 @Slf4j
@@ -66,6 +66,7 @@ public class TransactionService {
         try {
             // Save the object to database
             transactionRepo.save(transaction);
+            // Save to cache
             redisService.setData(transaction.getTransactionID(), transaction, 3600L);
         } catch (Exception exception) {
             // If unable to save, throw exception
@@ -75,11 +76,11 @@ public class TransactionService {
         double savedAmount = savingsService.updateSaving(transaction);
         String json = null;
         try {
-            json = transactionUtil.generateTransactionData(transaction, 0, savedAmount);
+            json = transactionUtil.generateTransactionData(username, savedAmount);
         } catch (JsonProcessingException exception) {
             throw new TransactionException(exception.getMessage());
         }
-        eventProducer.sendTopic(TRANSACTION_ADDED, json);
+        eventProducer.sendTopic(TRANSACTION, json);
 
         return getTransaction(transaction.getTransactionID());
     }
@@ -153,7 +154,7 @@ public class TransactionService {
      * @return The transaction response object containing the updated transaction's details.
      * @throws TransactionException If the transaction is unable to be updated to the database or if no transaction is found with the given ID.
      */
-    public TransactionResponse updateTransaction(String transactionID, TransactionRequest request) {
+    public TransactionResponse updateTransaction(String username, String transactionID, TransactionRequest request) throws InterruptedException {
 
         if (transactionID == null) {
             throw new TransactionException("Transaction ID should not be null");
@@ -177,6 +178,21 @@ public class TransactionService {
             // If unable to update, throw exception
             throw new TransactionException(exception.getMessage());
         }
+
+        Transaction updatedTransaction = transactionRepo.findByTransactionID(transactionID).orElse(null);
+        if (updatedTransaction == null) {
+            wait(200);
+            updatedTransaction = transactionRepo.findByTransactionID(transactionID).orElseThrow(() -> new TransactionException("Unabled to get the updated transaction"));
+        }
+        double updatedSavings = savingsService.updateSavingsDataAfterTransactionUpdate(username, transaction.get(), updatedTransaction);
+
+        String json = null;
+        try {
+            json = transactionUtil.generateTransactionData(username, updatedSavings);
+        } catch (JsonProcessingException exception) {
+            throw new TransactionException(exception.getMessage());
+        }
+        eventProducer.sendTopic(TRANSACTION, json);
 
         return getTransaction(transactionID);
     }
@@ -208,6 +224,15 @@ public class TransactionService {
             // If unable to delete, throw exception
             throw new TransactionException(exception.getMessage());
         }
+
+        double updatedSavings = savingsService.updateSavingsAfterTransactionDelete(transaction.get().getUsername(), transaction.get());
+        String json = null;
+        try {
+            json = transactionUtil.generateTransactionData(transaction.get().getUsername(), updatedSavings);
+        } catch (JsonProcessingException exception) {
+            throw new TransactionException(exception.getMessage());
+        }
+        eventProducer.sendTopic(TRANSACTION, json);
     }
 
     /**

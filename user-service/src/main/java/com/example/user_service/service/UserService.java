@@ -117,7 +117,7 @@ public class UserService {
         Optional<User> userOpt = userRepo.findByUsername(userRequest.getUsername());
         if (userOpt.isPresent()) {
             try {
-                userRepo.updateUserDetailsByUsername(userRequest.getUsername(), userRequest.getFirstName(), userRequest.getLastName(), userRequest.getEmail(), userRequest.getContactNumber());
+                userRepo.updateUserDetailsByUsername(userRequest.getUsername(), userRequest.getFirstName(), userRequest.getLastName(), userRequest.getEmail(), userRequest.getContactNumber(), userRequest.getCurrency());
                 redisService.deleteData(userRequest.getUsername());
                 log.info("User details updated successfully for username: {}", userRequest.getUsername());
             } catch (Exception exception) {
@@ -153,5 +153,24 @@ public class UserService {
         }
         log.warn("User not found with username: {}", username);
         throw new UserException("User not found with this username");
+    }
+
+
+    public void deleteUser(String username) {
+
+        if (username == null || username.isEmpty()) {
+            throw new UserException("Username cannot be empty or null.");
+        }
+
+        boolean isUserFound = userRepo.isUserExists(username);
+        if (!isUserFound) {
+            throw new UserException("Username cannot be found");
+        }
+        try {
+            userRepo.deleteById(username);
+            redisService.deleteData(username);
+        } catch (Exception exception) {
+            throw new UserException(exception.getMessage());
+        }
     }
 }

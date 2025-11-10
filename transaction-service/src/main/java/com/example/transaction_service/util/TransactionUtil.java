@@ -71,13 +71,10 @@ public class TransactionUtil {
 
     }
 
-    public String generateTransactionData(Transaction transaction, double oldAmount, double savingAmount) throws JsonProcessingException {
+    public String generateTransactionData(String username, double savingAmount) throws JsonProcessingException {
 
         TransactionDto transactionDto = new TransactionDto();
-        transactionDto.setUsername(transaction.getUsername());
-        transactionDto.setTransactionType(transaction.getTransactionType());
-        transactionDto.setOldAmount(oldAmount);
-        transactionDto.setNewAmount(transaction.getAmount());
+        transactionDto.setUsername(username);
         transactionDto.setSavingsAmount(savingAmount);
 
         return objectMapper.writeValueAsString(transactionDto);

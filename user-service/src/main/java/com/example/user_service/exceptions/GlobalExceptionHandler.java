@@ -18,7 +18,7 @@ public class GlobalExceptionHandler {
      * @return A ResponseEntity containing the error details and HTTP status.
      */
     @ExceptionHandler(UserException.class)
-    public ResponseEntity<?> handleUserAlreadyExistsException(UserException ex) {
+    public ResponseEntity<?> handleUserException(UserException ex) {
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }

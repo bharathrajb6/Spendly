@@ -40,8 +40,8 @@ public interface UserRepo extends JpaRepository<User, String> {
      */
     @Modifying
     @Transactional
-    @Query("UPDATE User u SET u.firstName = :firstName, u.lastName = :lastName, u.email = :email, u.contactNumber = :contactNumber WHERE u.username = :username")
-    int updateUserDetailsByUsername(String username, String firstName, String lastName, String email, String contactNumber);
+    @Query("UPDATE User u SET u.firstName = :firstName, u.lastName = :lastName, u.email = :email, u.contactNumber = :contactNumber, u.currency = :currency WHERE u.username = :username")
+    int updateUserDetailsByUsername(String username, String firstName, String lastName, String email, String contactNumber, String currency);
 
     /**
      * Updates the password for the given username.
@@ -54,4 +54,8 @@ public interface UserRepo extends JpaRepository<User, String> {
     @Transactional
     @Query("UPDATE User u SET u.password = :password WHERE u.username = :username")
     int updateUserPasswordByUsername(String username, String password);
+
+
+    @Query("SELECT CASE WHEN COUNT(u) > 0 THEN true ELSE false END FROM User u WHERE u.username = ?1")
+    boolean isUserExists(String username);
 }

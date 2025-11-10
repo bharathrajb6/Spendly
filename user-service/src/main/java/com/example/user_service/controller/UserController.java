@@ -6,6 +6,8 @@ import com.example.user_service.dto.response.UserResponse;
 import com.example.user_service.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Objects;
@@ -88,6 +90,12 @@ public class UserController {
             return null;
         }
         return userService.updatePassword(username, authRequest.getPassword());
+    }
+
+
+    public ResponseEntity<?> deleteMyData(@RequestHeader(value = "X-Username", required = false) String username) {
+        userService.deleteUser(username);
+        return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
 }

@@ -13,6 +13,8 @@ public class UserUtility {
         response.setFirstName(user.getFirstName());
         response.setLastName(user.getLastName());
         response.setContactNumber(user.getContactNumber());
+        response.setCurrency(user.getCurrency());
+        response.setCreatedAt(user.getCreatedAt());
 
         return response;
     }
@@ -26,6 +28,7 @@ public class UserUtility {
         newUser.setEmail(userRequest.getEmail());
         newUser.setUsername(userRequest.getUsername());
         newUser.setContactNumber(userRequest.getContactNumber());
+        newUser.setCurrency(userRequest.getCurrency());
 
         return newUser;
     }

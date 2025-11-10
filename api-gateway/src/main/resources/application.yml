@@ -34,3 +34,9 @@ spring:
               uri: http://localhost:8083
               predicates:
                 - Path=/api/v1/goal/**
+
+logging:
+  file:
+    name: logs/app.log
+  level:
+    root: DEBUG

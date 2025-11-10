@@ -8,6 +8,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.sql.Timestamp;
+
 @Entity
 @Table(name = "users")
 @Data
@@ -32,4 +34,10 @@ public class User {
 
     @Column(name = "contact_number", nullable = false)
     private String contactNumber;
+
+    @Column(name = "currency", nullable = false)
+    private String currency;
+
+    @Column(name = "created_at", nullable = false)
+    private Timestamp createdAt;
 }

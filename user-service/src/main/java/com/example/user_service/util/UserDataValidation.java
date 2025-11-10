@@ -133,6 +133,24 @@ public class UserDataValidation {
     }
 
     /**
+     * Validates the currency.
+     * The currency should not be null or empty.
+     *
+     * @param currency The currency to validate.
+     * @return True if the currency is valid, false otherwise.
+     */
+    public static boolean isValidCurrency(String currency) {
+        log.info("Validating currency: {}", currency);
+        if (currency == null || currency.trim().isEmpty()) {
+            log.warn("Currency is null or empty.");
+            return false;
+        } else {
+            log.info("Currency is valid.");
+            return true;
+        }
+    }
+
+    /**
      * Validates all attributes of a UserRequest object.
      *
      * @param userRequest The UserRequest object to validate.
@@ -140,12 +158,7 @@ public class UserDataValidation {
      */
     public static boolean validateUserRequest(UserRequest userRequest) {
         log.info("Validating user request for username: {}", userRequest.getUsername());
-        boolean isValid = isValidFirstName(userRequest.getFirstName()) &&
-                isValidLastName(userRequest.getLastName()) &&
-                isValidEmail(userRequest.getEmail()) &&
-                isValidUsername(userRequest.getUsername()) &&
-                isValidPassword(userRequest.getPassword()) &&
-                isValidContactNumber(userRequest.getContactNumber());
+        boolean isValid = isValidFirstName(userRequest.getFirstName()) && isValidLastName(userRequest.getLastName()) && isValidEmail(userRequest.getEmail()) && isValidUsername(userRequest.getUsername()) && isValidPassword(userRequest.getPassword()) && isValidContactNumber(userRequest.getContactNumber()) && isValidCurrency(userRequest.getCurrency());
         if (isValid) {
             log.info("User request validation successful for username: {}", userRequest.getUsername());
         } else {
