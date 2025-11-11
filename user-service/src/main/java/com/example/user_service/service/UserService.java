@@ -117,7 +117,7 @@ public class UserService {
         Optional<User> userOpt = userRepo.findByUsername(userRequest.getUsername());
         if (userOpt.isPresent()) {
             try {
-                userRepo.updateUserDetailsByUsername(userRequest.getUsername(), userRequest.getFirstName(), userRequest.getLastName(), userRequest.getEmail(), userRequest.getContactNumber(), userRequest.getCurrency());
+                userRepo.updateUserDetailsByUsername(userRequest.getUsername(), userRequest.getFirstName(), userRequest.getLastName(), userRequest.getEmail(), userRequest.getContactNumber());
                 redisService.deleteData(userRequest.getUsername());
                 log.info("User details updated successfully for username: {}", userRequest.getUsername());
             } catch (Exception exception) {

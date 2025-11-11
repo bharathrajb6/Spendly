@@ -5,6 +5,7 @@ import com.example.user_service.dto.request.UserRequest;
 import com.example.user_service.dto.response.UserResponse;
 import com.example.user_service.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Objects;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
@@ -41,7 +43,9 @@ public class UserController {
      */
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public Boolean registerUser(@RequestBody UserRequest userRequest) {
-        return userService.registerUser(userRequest);
+        log.info("Received registration request: {}", userRequest);
+        Boolean result = userService.registerUser(userRequest);
+        return result;
     }
 
     /**

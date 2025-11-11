@@ -35,9 +35,6 @@ public class User {
     @Column(name = "contact_number", nullable = false)
     private String contactNumber;
 
-    @Column(name = "currency", nullable = false)
-    private String currency;
-
-    @Column(name = "created_at", nullable = false)
+    @Column(name = "created_at")
     private Timestamp createdAt;
 }

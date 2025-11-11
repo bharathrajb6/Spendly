@@ -16,4 +16,5 @@ public class TransactionRequest {
     private String notes;
     private String paymentType;
     private boolean recurring;
+    private int frequency;
 }

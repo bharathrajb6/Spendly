@@ -6,7 +6,9 @@ import com.example.transaction_service.exception.TransactionException;
 import com.example.transaction_service.kafka.EventProducer;
 import com.example.transaction_service.model.ExpenseCategory;
 import com.example.transaction_service.model.IncomeCategory;
+import com.example.transaction_service.model.RecurringTransaction;
 import com.example.transaction_service.model.Transaction;
+import com.example.transaction_service.repo.RecurringTransactionRepo;
 import com.example.transaction_service.repo.TransactionRepo;
 import com.example.transaction_service.util.TransactionUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -18,6 +20,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -45,6 +48,9 @@ public class TransactionService {
 
     @Autowired
     private SavingsService savingsService;
+
+    @Autowired
+    private RecurringTransactionRepo recurringTransactionRepo;
 
 
     /**
@@ -81,6 +87,10 @@ public class TransactionService {
             throw new TransactionException(exception.getMessage());
         }
         eventProducer.sendTopic(TRANSACTION, json);
+
+        if (transaction.isRecurringTransaction()) {
+            addRecurrency(transaction);
+        }
 
         return getTransaction(transaction.getTransactionID());
     }
@@ -493,5 +503,43 @@ public class TransactionService {
         transactionList.put("REMAIN", totalIncomeAmount - totalExpenseAmount);
 
         return transactionList;
+    }
+
+    /**
+     * Adds a recurring transaction to the database.
+     *
+     * @param transaction The transaction to add.
+     * @throws TransactionException If the transaction is not recurring.
+     */
+    public void addRecurrency(Transaction transaction) {
+        if (transaction == null) {
+            throw new TransactionException("Transaction should not be null");
+        }
+
+        if (!transaction.isRecurringTransaction()) {
+            throw new TransactionException("Transaction is not recurring");
+        }
+
+        RecurringTransaction recurringTransaction = new RecurringTransaction();
+        recurringTransaction.setRecurringTransactionID(UUID.randomUUID().toString());
+        recurringTransaction.setUsername(transaction.getUsername());
+        recurringTransaction.setCategory(transaction.getCategory());
+        recurringTransaction.setAmount(transaction.getAmount());
+        recurringTransaction.setFrequency(10);
+
+        Timestamp currentDate = transaction.getTransactionDate();
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(currentDate);
+        cal.add(Calendar.MONTH, 1);
+        Timestamp nextDueDate = new Timestamp(cal.getTimeInMillis());
+
+        recurringTransaction.setNextDueDate(nextDueDate);
+
+        try {
+            recurringTransactionRepo.save(recurringTransaction);
+        } catch (Exception exception) {
+            throw new TransactionException(exception.getMessage());
+        }
     }
 }

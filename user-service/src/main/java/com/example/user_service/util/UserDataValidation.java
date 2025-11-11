@@ -158,7 +158,7 @@ public class UserDataValidation {
      */
     public static boolean validateUserRequest(UserRequest userRequest) {
         log.info("Validating user request for username: {}", userRequest.getUsername());
-        boolean isValid = isValidFirstName(userRequest.getFirstName()) && isValidLastName(userRequest.getLastName()) && isValidEmail(userRequest.getEmail()) && isValidUsername(userRequest.getUsername()) && isValidPassword(userRequest.getPassword()) && isValidContactNumber(userRequest.getContactNumber()) && isValidCurrency(userRequest.getCurrency());
+        boolean isValid = isValidFirstName(userRequest.getFirstName()) && isValidLastName(userRequest.getLastName()) && isValidEmail(userRequest.getEmail()) && isValidUsername(userRequest.getUsername()) && isValidPassword(userRequest.getPassword()) && isValidContactNumber(userRequest.getContactNumber());
         if (isValid) {
             log.info("User request validation successful for username: {}", userRequest.getUsername());
         } else {

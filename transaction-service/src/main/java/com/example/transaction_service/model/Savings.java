@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 public class Savings {
 
     @Id
-    @Column(name = "saving_id", nullable = false, updatable = true)
+    @Column(name = "saving_id", nullable = false, updatable = false)
     private String savingsId;
 
     @Column(name = "username", unique = true)

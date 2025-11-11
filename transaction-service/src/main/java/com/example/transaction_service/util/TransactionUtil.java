@@ -3,7 +3,6 @@ package com.example.transaction_service.util;
 import com.example.transaction_service.dto.request.TransactionRequest;
 import com.example.transaction_service.dto.response.TransactionResponse;
 import com.example.transaction_service.kafka.TransactionDto;
-import com.example.transaction_service.model.Savings;
 import com.example.transaction_service.model.Transaction;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +39,11 @@ public class TransactionUtil {
         transaction.setCategory(request.getCategory());
         transaction.setPaymentType(request.getPaymentType());
         transaction.setRecurringTransaction(request.isRecurring());
+        if (transaction.isRecurringTransaction()) {
+            transaction.setFrequency(request.getFrequency());
+        } else {
+            transaction.setFrequency(0);
+        }
 
         log.info("Generated transaction: {}", transaction);
         return transaction;

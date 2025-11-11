@@ -41,4 +41,7 @@ public class Transaction {
 
     @Column(name = "is_recurring_transaction")
     private boolean isRecurringTransaction;
+
+    @Transient
+    private int frequency;
 }
