@@ -122,4 +122,8 @@ public interface GoalRepo extends JpaRepository<Goal, String> {
      */
     @Query("SELECT CASE WHEN COUNT(g) > 0 THEN true ELSE false END FROM Goal g WHERE g.goalId = ?1")
     boolean isGoalFound(String goalId);
+
+    long countByUsername(String username);
+
+    long countByUsernameAndStatus(String username, GoalStatus status);
 }

@@ -73,8 +73,8 @@ public class TransactionController {
      * @throws TransactionException If the transaction is unable to be updated to the database or if no transaction is found with the given ID.
      */
     @RequestMapping(value = "/transaction/{transactionID}", method = RequestMethod.PUT)
-    public TransactionResponse updateTransaction(@RequestHeader("X-Username") String username,@PathVariable String transactionID, @RequestBody TransactionRequest request)  throws InterruptedException{
-        return transactionService.updateTransaction(username,transactionID, request);
+    public TransactionResponse updateTransaction(@RequestHeader("X-Username") String username, @PathVariable String transactionID, @RequestBody TransactionRequest request) throws InterruptedException {
+        return transactionService.updateTransaction(username, transactionID, request);
     }
 
 

@@ -8,8 +8,10 @@ import com.example.user_service.model.User;
 import com.example.user_service.repo.UserRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Optional;
 
@@ -25,6 +27,10 @@ public class UserService {
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
     private final RedisService redisService;
+    private final RestTemplate restTemplate;
+
+    @Value("${services.transaction.base-url:http://localhost:8082/api/v1}")
+    private String transactionServiceBaseUrl;
 
     /**
      * Validates user credentials by checking the username and matching the provided password.
@@ -72,12 +78,23 @@ public class UserService {
         try {
             userRepo.save(newUser);
             redisService.setData(user.getUsername(), newUser, 3600L);
+            initializeDefaultBudgets(newUser.getUsername());
             log.info("User registered successfully: {}", user.getUsername());
         } catch (Exception exception) {
             log.error("Error saving user details for user: {}", user.getUsername(), exception);
             throw new UserException("Unable to save the user details");
         }
         return true;
+    }
+
+    private void initializeDefaultBudgets(String username) {
+        String url = String.format("%s/budget/default/%s", transactionServiceBaseUrl, username);
+        try {
+            restTemplate.postForEntity(url, null, Void.class);
+            log.info("Default budgets initialized for user {}", username);
+        } catch (Exception exception) {
+            log.warn("Unable to initialize budgets for user {}. Continuing without blocking registration.", username, exception);
+        }
     }
 
     /**

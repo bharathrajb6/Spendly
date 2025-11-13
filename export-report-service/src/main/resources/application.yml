@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: export-report-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/expense
+    username: root
+    password: Hunter@4343
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  main:
+    web-application-type: servlet
+    allow-bean-definition-overriding: true
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: export-report-service
+      auto-offset-reset: earliest
+
+server:
+  port: 8084
+
+logging:
+  file:
+    name: logs/app.log
+  level:
+    root: DEBUG

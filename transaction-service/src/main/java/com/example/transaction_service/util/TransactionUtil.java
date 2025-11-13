@@ -3,7 +3,9 @@ package com.example.transaction_service.util;
 import com.example.transaction_service.dto.request.TransactionRequest;
 import com.example.transaction_service.dto.response.TransactionResponse;
 import com.example.transaction_service.kafka.TransactionDto;
+import com.example.transaction_service.kafka.TransactionEventType;
 import com.example.transaction_service.model.Transaction;
+import com.example.transaction_service.service.insights.dto.UserTransactionSummary;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -64,7 +66,7 @@ public class TransactionUtil {
         response.setType(transaction.getTransactionType());
         response.setCategory(transaction.getCategory());
         response.setAmount(transaction.getAmount());
-        response.setTransactionDate(transaction.getTransactionDate());
+        response.setTransactionDate(transaction.getTransactionDate().toLocalDateTime().toLocalDate());
         response.setNotes(transaction.getNotes());
         response.setPaymentType(transaction.getPaymentType());
         response.setRecurring(transaction.isRecurringTransaction());
@@ -75,11 +77,29 @@ public class TransactionUtil {
 
     }
 
-    public String generateTransactionData(String username, double savingAmount) throws JsonProcessingException {
+    public String generateTransactionData(Transaction transaction, double savingAmount, UserTransactionSummary summary, TransactionEventType eventType) throws JsonProcessingException {
 
         TransactionDto transactionDto = new TransactionDto();
-        transactionDto.setUsername(username);
+        transactionDto.setUsername(transaction.getUsername());
         transactionDto.setSavingsAmount(savingAmount);
+        transactionDto.setTotalIncome(summary.getTotalIncome());
+        transactionDto.setTotalExpense(summary.getTotalExpense());
+        transactionDto.setRemainingBalance(summary.getRemainingBalance());
+        transactionDto.setTransactionId(transaction.getTransactionID());
+        transactionDto.setTransactionType(transaction.getTransactionType());
+        transactionDto.setCategory(transaction.getCategory());
+        transactionDto.setTransactionAmount(transaction.getAmount());
+        transactionDto.setTransactionTimestamp(transaction.getTransactionDate() != null ? transaction.getTransactionDate().getTime() : System.currentTimeMillis());
+        if (transaction.getTransactionDate() != null) {
+            var dateTime = transaction.getTransactionDate().toLocalDateTime();
+            transactionDto.setTransactionMonth(dateTime.getMonthValue());
+            transactionDto.setTransactionYear(dateTime.getYear());
+        } else {
+            var now = java.time.LocalDate.now();
+            transactionDto.setTransactionMonth(now.getMonthValue());
+            transactionDto.setTransactionYear(now.getYear());
+        }
+        transactionDto.setEventType(eventType);
 
         return objectMapper.writeValueAsString(transactionDto);
     }

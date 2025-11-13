@@ -5,7 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Timestamp;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -17,7 +17,7 @@ public class TransactionResponse {
     private double amount;
     private String category;
     private String type;
-    private Timestamp transactionDate;
+    private LocalDate transactionDate;
     private String notes;
     private String paymentType;
     private boolean isRecurring;

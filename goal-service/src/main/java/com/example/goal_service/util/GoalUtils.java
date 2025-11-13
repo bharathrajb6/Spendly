@@ -25,6 +25,7 @@ public class GoalUtils {
         goalResponse.setDeadline(goal.getDeadline());
         goalResponse.setUsername(goal.getUsername());
         goalResponse.setStatus(goal.getStatus().toString());
+        goalResponse.setProgressPercent(goal.getProgressPercent());
 
         return goalResponse;
     }

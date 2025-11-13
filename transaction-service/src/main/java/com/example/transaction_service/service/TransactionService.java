@@ -4,12 +4,15 @@ import com.example.transaction_service.dto.request.TransactionRequest;
 import com.example.transaction_service.dto.response.TransactionResponse;
 import com.example.transaction_service.exception.TransactionException;
 import com.example.transaction_service.kafka.EventProducer;
+import com.example.transaction_service.kafka.TransactionEventType;
 import com.example.transaction_service.model.ExpenseCategory;
 import com.example.transaction_service.model.IncomeCategory;
 import com.example.transaction_service.model.RecurringTransaction;
 import com.example.transaction_service.model.Transaction;
 import com.example.transaction_service.repo.RecurringTransactionRepo;
 import com.example.transaction_service.repo.TransactionRepo;
+import com.example.transaction_service.service.budget.BudgetService;
+import com.example.transaction_service.service.insights.TransactionAnalyticsService;
 import com.example.transaction_service.util.TransactionUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,7 +55,11 @@ public class TransactionService {
     @Autowired
     private RecurringTransactionRepo recurringTransactionRepo;
 
+    @Autowired
+    private TransactionAnalyticsService transactionAnalyticsService;
 
+    @Autowired
+    private BudgetService budgetService;
     /**
      * This method is used to add a new transaction for the given username.
      *
@@ -82,7 +89,8 @@ public class TransactionService {
         double savedAmount = savingsService.updateSaving(transaction);
         String json = null;
         try {
-            json = transactionUtil.generateTransactionData(username, savedAmount);
+            var summary = transactionAnalyticsService.buildUserTransactionSummary(username);
+            json = transactionUtil.generateTransactionData(transaction, savedAmount, summary, TransactionEventType.CREATED);
         } catch (JsonProcessingException exception) {
             throw new TransactionException(exception.getMessage());
         }
@@ -91,6 +99,8 @@ public class TransactionService {
         if (transaction.isRecurringTransaction()) {
             addRecurrency(transaction);
         }
+
+        budgetService.handleTransactionEvent(transaction, null);
 
         return getTransaction(transaction.getTransactionID());
     }
@@ -198,11 +208,14 @@ public class TransactionService {
 
         String json = null;
         try {
-            json = transactionUtil.generateTransactionData(username, updatedSavings);
+            var summary = transactionAnalyticsService.buildUserTransactionSummary(username);
+            json = transactionUtil.generateTransactionData(updatedTransaction, updatedSavings, summary, TransactionEventType.UPDATED);
         } catch (JsonProcessingException exception) {
             throw new TransactionException(exception.getMessage());
         }
         eventProducer.sendTopic(TRANSACTION, json);
+
+        budgetService.handleTransactionEvent(updatedTransaction, transaction.get());
 
         return getTransaction(transactionID);
     }
@@ -238,11 +251,14 @@ public class TransactionService {
         double updatedSavings = savingsService.updateSavingsAfterTransactionDelete(transaction.get().getUsername(), transaction.get());
         String json = null;
         try {
-            json = transactionUtil.generateTransactionData(transaction.get().getUsername(), updatedSavings);
+            var summary = transactionAnalyticsService.buildUserTransactionSummary(transaction.get().getUsername());
+            json = transactionUtil.generateTransactionData(transaction.get(), updatedSavings, summary, TransactionEventType.DELETED);
         } catch (JsonProcessingException exception) {
             throw new TransactionException(exception.getMessage());
         }
         eventProducer.sendTopic(TRANSACTION, json);
+
+        budgetService.handleTransactionEvent(null, transaction.get());
     }
 
     /**
@@ -413,7 +429,7 @@ public class TransactionService {
 
         if (transactionResponses.getContent() != null) {
             filteredTransactions = transactionResponses.getContent().stream().filter(transactionResponse -> {
-                LocalDate transactionDate = transactionResponse.getTransactionDate().toLocalDateTime().toLocalDate();
+                LocalDate transactionDate = transactionResponse.getTransactionDate();
                 return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month;
             }).collect(Collectors.toList());
         }
@@ -541,5 +557,37 @@ public class TransactionService {
         } catch (Exception exception) {
             throw new TransactionException(exception.getMessage());
         }
+    }
+
+    public List<Transaction> getFilteredTransactionsForUser(String username, String startDate, String endDate) {
+
+        LocalDate start, end;
+
+        try {
+            // Parse the start and end dates
+            start = LocalDate.parse(startDate);
+            end = LocalDate.parse(endDate);
+        } catch (Exception exception) {
+            // If unable to parse, throw exception
+            throw new TransactionException("Invalid date format");
+        }
+
+        if (end.isBefore(start)) {
+            throw new TransactionException("End date should be greater than start date");
+        }
+
+        if (start.isAfter(end)) {
+            throw new TransactionException("Start date should be less than end date");
+        }
+
+        List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
+
+        List<Transaction> filteredTransaction = transactions.stream().filter(transaction -> (transaction.getTransactionDate().toLocalDateTime().toLocalDate().equals(start) ||
+                transaction.getTransactionDate().toLocalDateTime().toLocalDate().equals(end) ||
+                transaction.getTransactionDate().toLocalDateTime().toLocalDate().isAfter(start) && transaction.getTransactionDate().toLocalDateTime().toLocalDate().isBefore(end))).collect(Collectors.toList());
+
+
+        return filteredTransaction;
+
     }
 }

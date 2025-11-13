@@ -19,4 +19,5 @@ public class GoalResponse {
     private double savedAmount;
     private Date deadline;
     private String status;
+    private double progressPercent;
 }
