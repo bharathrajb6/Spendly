@@ -101,7 +101,7 @@ public interface GoalRepo extends JpaRepository<Goal, String> {
     @Modifying
     @Transactional
     @Query("UPDATE Goal g SET g.savedAmount = ?1, g.progressPercent = ?2 WHERE g.goalId = ?3")
-    void updateGoalSavedAmountAndPercentage(double savedAmount, double percentage, String goalId);
+    int updateGoalSavedAmountAndPercentage(double savedAmount, double percentage, String goalId);
 
 
     /**

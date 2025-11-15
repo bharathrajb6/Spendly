@@ -322,7 +322,7 @@ public class GoalService {
         return goalRepo.findGoalByUsername(username).stream().map(GoalUtils::toGoalResponse).collect(Collectors.toList());
     }
 
-    private double roundToTwoDecimals(double value) {
+    public double roundToTwoDecimals(double value) {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 

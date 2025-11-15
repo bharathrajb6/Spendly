@@ -54,5 +54,5 @@ public interface TransactionRepo extends JpaRepository<Transaction, String> {
     @Modifying
     @Transactional
     @Query("UPDATE Transaction t SET t.transactionType = ?1, t.category = ?2, t.amount = ?3, t.notes = ?4, t.paymentType = ?5, t.isRecurringTransaction = ?6 WHERE t.transactionID = ?7")
-    void updateTransaction(String type, String category, double amount, String notes, String paymentType, boolean isRecurringTransaction, String transactionID);
+    int updateTransaction(String type, String category, double amount, String notes, String paymentType, boolean isRecurringTransaction, String transactionID);
 }
