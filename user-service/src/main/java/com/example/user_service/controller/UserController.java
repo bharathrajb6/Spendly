@@ -97,9 +97,16 @@ public class UserController {
     }
 
 
+    @RequestMapping(value = "/delete", method = RequestMethod.DELETE)
     public ResponseEntity<?> deleteMyData(@RequestHeader(value = "X-Username", required = false) String username) {
         userService.deleteUser(username);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
+    }
+
+
+    @RequestMapping(value = "/{username}", method = RequestMethod.GET)
+    public String getUserEmail(@PathVariable("username") String username) {
+        return userService.getUserDetails(username).getEmail();
     }
 
 }
