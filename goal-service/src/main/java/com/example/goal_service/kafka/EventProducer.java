@@ -10,7 +10,7 @@ import org.springframework.stereotype.Service;
 public class EventProducer {
 
     @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     /**
      * Sends a message to the Kafka topic with the given topic name and string data.
