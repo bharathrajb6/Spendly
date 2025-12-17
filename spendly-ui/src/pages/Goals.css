@@ -9,6 +9,7 @@
     font-size: var(--font-size-2xl);
     font-weight: var(--font-weight-semibold);
     margin-bottom: var(--spacing-xs);
+    color: var(--color-text-primary);
 }
 
 /* Current Savings Card */
@@ -231,4 +232,25 @@
     .goal-detail-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* Delete preview for confirmation modal */
+.delete-preview {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    margin-top: var(--spacing-md);
+    color: var(--color-text-primary);
+}
+
+.delete-preview strong {
+    color: var(--color-text-primary);
+}
+
+/* Small modal variant */
+.modal-sm {
+    max-width: 400px;
 }

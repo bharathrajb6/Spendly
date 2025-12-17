@@ -28,6 +28,7 @@
 
   --color-border: #e5e7eb;
   --color-border-light: #f3f4f6;
+  --color-bg-tertiary: #f9fafb;
 
   /* Category Colors */
   --color-food: #10b981;
@@ -387,6 +388,8 @@ img {
   transition: border-color var(--transition-fast);
   outline: none;
   width: 100%;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-secondary);
 }
 
 .input:focus {
@@ -846,6 +849,16 @@ img {
 .modal-title {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.modal-body {
+  color: var(--color-text-primary);
+}
+
+.modal-body p {
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-sm);
 }
 
 .modal-close {

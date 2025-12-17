@@ -19,6 +19,39 @@ export default function useWebSocket(wsUrl = 'ws://localhost:8086/ws/notificatio
         setTimeout(() => {
             setToast(null);
         }, 5000);
+
+        // Play notification sound
+        try {
+            // Create a simple beep sound using Web Audio API
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            oscillator.frequency.value = 800; // Hz
+            oscillator.type = 'sine';
+            gainNode.gain.value = 0.3;
+
+            oscillator.start();
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+            oscillator.stop(audioContext.currentTime + 0.3);
+        } catch (e) {
+            console.log('Could not play notification sound:', e);
+        }
+
+        // Show browser notification if permitted
+        if (Notification.permission === 'granted') {
+            new Notification(notification.title || 'Spendly Notification', {
+                body: notification.message || '',
+                icon: '/favicon.ico',
+                tag: 'spendly-notification',
+            });
+        } else if (Notification.permission !== 'denied') {
+            // Request permission for browser notifications
+            Notification.requestPermission();
+        }
     }, []);
 
     const hideToast = useCallback(() => {
