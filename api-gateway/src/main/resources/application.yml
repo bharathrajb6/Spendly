@@ -29,11 +29,11 @@ spring:
             - id: transaction-service
               uri: http://localhost:8082
               predicates:
-                - Path=/api/v1/transaction/**
+                - Path=/api/v1/transaction/**,/api/v1/savings/**,/api/v1/analytics/**
             - id: goal-service
               uri: http://localhost:8083
               predicates:
-                - Path=/api/v1/goal/**
+                - Path=/api/v1/goal/**,/api/v1/goals/**
 
 logging:
   file:

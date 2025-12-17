@@ -53,8 +53,26 @@ public class GoalService {
     @Transactional(readOnly = true)
     public GoalSummaryResponse getGoalSummary(String username) {
         long totalGoals = goalRepo.countByUsername(username);
-        long achievedGoals = goalRepo.countByUsernameAndStatus(username, GoalStatus.ACHIEVED) + goalRepo.countByUsernameAndStatus(username, GoalStatus.COMPLETED);
+        long achievedGoals = goalRepo.countByUsernameAndStatus(username, GoalStatus.ACHIEVED)
+                + goalRepo.countByUsernameAndStatus(username, GoalStatus.COMPLETED);
         return GoalSummaryResponse.builder().totalGoals(totalGoals).achievedGoals(achievedGoals).build();
+    }
+
+    /**
+     * Get all goals for a user.
+     *
+     * @param username the username of the user
+     * @return list of goal responses
+     */
+    @Transactional(readOnly = true)
+    public List<GoalResponse> getAllGoalsForUser(String username) {
+        log.info("Getting all goals for user: {}", username);
+        if (username == null || username.isBlank()) {
+            throw new GoalException("Username cannot be empty");
+        }
+        return goalRepo.findGoalByUsername(username).stream()
+                .map(GoalUtils::toGoalResponse)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -78,7 +96,8 @@ public class GoalService {
         goal.setUsername(username);
 
         double savedAmount = getSavingsAmountFromExistingGoal(username);
-        log.info("Getting the saved amount from the existing goal for user: {} - Saved amount: {}", username, savedAmount);
+        log.info("Getting the saved amount from the existing goal for user: {} - Saved amount: {}", username,
+                savedAmount);
         if (savedAmount != 0) {
             goal.setSavedAmount(savedAmount);
         }
@@ -88,6 +107,9 @@ public class GoalService {
 
         if (goal.getProgressPercent() >= 100) {
             goal.setStatus(GoalStatus.ACHIEVED);
+            goal.setProgressPercent(100.0);
+            // Send notification for immediately achieved goal
+            goalNotificationService.notifyGoalAchieved(username, goal.getGoalName(), goal.getTargetAmount());
         }
 
         // Save the goal to the database
@@ -130,7 +152,6 @@ public class GoalService {
         return toGoalResponse(goal);
     }
 
-
     /**
      * Update a goal
      *
@@ -164,11 +185,11 @@ public class GoalService {
             throw new GoalException("Invalid status");
         }
 
-
         try {
             log.info("Updating goal details: {}", request);
             // Update the goal details
-            goalRepo.updateGoalDetails(request.getGoalName(), request.getTargetAmount(), request.getDeadline(), goalStatus, goalId);
+            goalRepo.updateGoalDetails(request.getGoalName(), request.getTargetAmount(), request.getDeadline(),
+                    goalStatus, goalId);
             redisService.deleteData(goalId);
         } catch (Exception exception) {
             log.error("Error while updating goal: ", exception);
@@ -196,7 +217,6 @@ public class GoalService {
             throw new GoalException("Goal id cannot be empty");
         }
 
-
         if (!goalRepo.isGoalFound(goalId)) {
             throw new GoalException("Goal not found");
         }
@@ -212,12 +232,14 @@ public class GoalService {
         }
     }
 
-
     /**
-     * Listens to Kafka topic "transaction-added" and updates the saved amount of all goals for the given user.
+     * Listens to Kafka topic "transaction-added" and updates the saved amount of
+     * all goals for the given user.
      * If no goal is present for the user, the function does nothing.
-     * For each goal, the saved amount is updated based on the transaction type and amount.
-     * The updated saved amount and percentage for each goal is then saved to the database.
+     * For each goal, the saved amount is updated based on the transaction type and
+     * amount.
+     * The updated saved amount and percentage for each goal is then saved to the
+     * database.
      *
      * @param transaction The transaction object received from Kafka
      */
@@ -239,7 +261,8 @@ public class GoalService {
         double totalExpense = transaction.getTotalExpense();
 
         if (Double.isNaN(totalIncome) || Double.isNaN(totalExpense)) {
-            log.warn("Received invalid financial totals for user {}. Skipping recalculation.", transaction.getUsername());
+            log.warn("Received invalid financial totals for user {}. Skipping recalculation.",
+                    transaction.getUsername());
             return;
         }
 
@@ -247,7 +270,8 @@ public class GoalService {
     }
 
     /**
-     * Updates the status of the goal with the given id to "Completed" if the saved amount is greater than or equal to the target amount.
+     * Updates the status of the goal with the given id to "Completed" if the saved
+     * amount is greater than or equal to the target amount.
      * If the goal is not found, a GoalException is thrown.
      *
      * @param goalId the id of the goal to update
@@ -260,7 +284,8 @@ public class GoalService {
         Goal goal = goalRepo.findByGoalId(goalId).orElseThrow(() -> new GoalException("Goal not found"));
         if (goal.getSavedAmount() >= goal.getTargetAmount()) {
             goalRepo.updateGoalSavedAmountAndPercentage(goal.getTargetAmount(), 100.0, goalId);
-            goalRepo.updateGoalDetails(goal.getGoalName(), goal.getTargetAmount(), goal.getDeadline(), GoalStatus.ACHIEVED, goalId);
+            goalRepo.updateGoalDetails(goal.getGoalName(), goal.getTargetAmount(), goal.getDeadline(),
+                    GoalStatus.ACHIEVED, goalId);
         }
     }
 
@@ -268,6 +293,8 @@ public class GoalService {
     public void recalculateGoalProgress(String username, double totalIncome, double totalExpense) {
         Objects.requireNonNull(username, "Username cannot be null when recalculating goal progress.");
         List<Goal> activeGoals = goalRepo.findGoalsBasedOnStatusForUser(username, GoalStatus.ACTIVE);
+        List<Goal> completedGoals = goalRepo.findGoalsBasedOnStatusForUser(username, GoalStatus.COMPLETED);
+        activeGoals.addAll(completedGoals);
 
         if (activeGoals.isEmpty()) {
             log.info("No active goals to recalculate for user: {}", username);
@@ -275,7 +302,8 @@ public class GoalService {
         }
 
         double distributableBalance = Math.max(totalIncome - totalExpense, 0);
-        double totalOutstanding = activeGoals.stream().mapToDouble(goal -> Math.max(goal.getTargetAmount() - goal.getSavedAmount(), 0)).sum();
+        double totalOutstanding = activeGoals.stream()
+                .mapToDouble(goal -> Math.max(goal.getTargetAmount() - goal.getSavedAmount(), 0)).sum();
 
         for (Goal goal : activeGoals) {
             GoalStatus previousStatus = goal.getStatus();
@@ -284,7 +312,8 @@ public class GoalService {
             double allocation = distributableBalance * allocationRatio;
             double updatedSavedAmount = Math.min(goal.getSavedAmount() + allocation, goal.getTargetAmount());
             goal.setSavedAmount(roundToTwoDecimals(updatedSavedAmount));
-            double progressPercent = goal.getTargetAmount() == 0 ? 0 : calculatePercentage(goal.getSavedAmount(), goal.getTargetAmount());
+            double progressPercent = goal.getTargetAmount() == 0 ? 0
+                    : calculatePercentage(goal.getSavedAmount(), goal.getTargetAmount());
             goal.setProgressPercent(roundToTwoDecimals(progressPercent));
             if (goal.getSavedAmount() >= goal.getTargetAmount()) {
                 goal.setStatus(GoalStatus.ACHIEVED);
@@ -319,24 +348,27 @@ public class GoalService {
         }
 
         recalculateGoalProgress(username, response.getTotalIncome(), response.getTotalExpense());
-        return goalRepo.findGoalByUsername(username).stream().map(GoalUtils::toGoalResponse).collect(Collectors.toList());
+        return goalRepo.findGoalByUsername(username).stream().map(GoalUtils::toGoalResponse)
+                .collect(Collectors.toList());
     }
 
     public double roundToTwoDecimals(double value) {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
 
-
     /**
      * Returns the saved amount of the first goal found for the given user.
-     * If no goal is found, the method will attempt to call the user-service to fetch the savings amount.
+     * If no goal is found, the method will attempt to call the user-service to
+     * fetch the savings amount.
      * If the user-service is unavailable, the method will throw a GoalException.
-     * If the user-service returns a non-zero and non-null savings amount, the method will return that amount.
+     * If the user-service returns a non-zero and non-null savings amount, the
+     * method will return that amount.
      * Otherwise, the method will return 0.0.
      *
      * @param username the username of the user
      * @return the saved amount of the first goal found for the given user
-     * @throws GoalException if the user-service is unavailable or returns an invalid savings amount
+     * @throws GoalException if the user-service is unavailable or returns an
+     *                       invalid savings amount
      */
     private double getSavingsAmountFromExistingGoal(String username) {
         boolean isAnyGoalFoundForThisUser = goalRepo.isAnyGoalPrentForThisUser(username);

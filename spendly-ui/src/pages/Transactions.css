@@ -1,0 +1,114 @@
+.filters-card {
+    padding: var(--spacing-lg);
+}
+
+.filters-header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+.filters-row {
+    display: flex;
+    gap: var(--spacing-md);
+    align-items: center;
+}
+
+.filters-row .input-with-icon {
+    max-width: 300px;
+}
+
+@media (max-width: 768px) {
+    .filters-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filters-row .input-with-icon,
+    .filters-row .select {
+        max-width: none;
+        width: 100%;
+    }
+}
+
+/* Transaction action buttons */
+.transaction-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.transaction-item:hover .transaction-actions {
+    opacity: 1;
+}
+
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: var(--border-radius);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.btn-icon-danger:hover {
+    background: var(--color-danger, #ef4444);
+    color: white;
+}
+
+/* Danger button */
+.btn-danger {
+    background: var(--color-danger, #ef4444);
+    color: white;
+    border: none;
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+/* Delete preview */
+.delete-preview {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--border-radius);
+    margin-top: var(--spacing-md);
+}
+
+.delete-preview .income {
+    color: var(--color-success, #22c55e);
+    font-weight: 600;
+}
+
+.delete-preview .expense {
+    color: var(--color-danger, #ef4444);
+    font-weight: 600;
+}
+
+/* Small modal variant */
+.modal-sm {
+    max-width: 400px;
+}
+
+/* Mobile: always show action buttons */
+@media (max-width: 768px) {
+    .transaction-actions {
+        opacity: 1;
+    }
+}

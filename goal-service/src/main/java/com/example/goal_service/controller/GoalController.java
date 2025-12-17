@@ -69,14 +69,26 @@ public class GoalController {
      * @return list of updated goal responses
      */
     @Operation(summary = "Refresh goal progress for a user", description = "Recalculates goal progress using the latest financial summary for the user.")
-    @PutMapping("/goals/update-progress/{userId}")
+    @PutMapping("/goal/update-progress/{userId}")
     public List<GoalResponse> refreshGoalProgress(@PathVariable("userId") String userId) {
         return goalService.updateGoalsProgressForUser(userId);
     }
 
     @Operation(summary = "Get goal summary for a user", description = "Provides aggregated counts for total and achieved goals.")
-    @GetMapping("/goals/{userId}/summary")
+    @GetMapping("/goal/{userId}/summary")
     public GoalSummaryResponse getGoalSummary(@PathVariable("userId") String userId) {
         return goalService.getGoalSummary(userId);
+    }
+
+    /**
+     * Gets all goals for a user.
+     *
+     * @param userId the username of the user whose goals to retrieve
+     * @return list of goal responses
+     */
+    @Operation(summary = "Get all goals for a user", description = "Retrieves all goals for the specified user.")
+    @GetMapping("/goal/all/{userId}")
+    public List<GoalResponse> getAllGoalsForUser(@PathVariable("userId") String userId) {
+        return goalService.getAllGoalsForUser(userId);
     }
 }

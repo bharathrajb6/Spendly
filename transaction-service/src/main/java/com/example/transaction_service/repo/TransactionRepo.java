@@ -19,7 +19,8 @@ public interface TransactionRepo extends JpaRepository<Transaction, String> {
      * Finds a transaction by its ID.
      *
      * @param transactionID The ID of the transaction to find.
-     * @return An optional containing the transaction if found, or an empty optional if not found.
+     * @return An optional containing the transaction if found, or an empty optional
+     *         if not found.
      */
     Optional<Transaction> findByTransactionID(String transactionID);
 
@@ -28,7 +29,8 @@ public interface TransactionRepo extends JpaRepository<Transaction, String> {
      *
      * @param username The username for which all transactions are being retrieved.
      * @param pageable The pageable object containing the page and size details.
-     * @return A page of transaction objects containing all transactions for the given user.
+     * @return A page of transaction objects containing all transactions for the
+     *         given user.
      */
     @Query("SELECT t FROM Transaction t WHERE t.username = ?1")
     Page<Transaction> findTransactionByUsername(String username, Pageable pageable);
@@ -37,7 +39,8 @@ public interface TransactionRepo extends JpaRepository<Transaction, String> {
      * Retrieves all transactions for a given username.
      *
      * @param username The username for which all transactions are being retrieved.
-     * @return A list of transaction objects containing all transactions for the given user.
+     * @return A list of transaction objects containing all transactions for the
+     *         given user.
      */
     @Query("SELECT t FROM Transaction t WHERE t.username = ?1")
     List<Transaction> findTransactionByUsername(String username);
@@ -51,8 +54,9 @@ public interface TransactionRepo extends JpaRepository<Transaction, String> {
      * @param notes    The new notes of the transaction.
      * @param username The username of which the transaction is being updated.
      */
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("UPDATE Transaction t SET t.transactionType = ?1, t.category = ?2, t.amount = ?3, t.notes = ?4, t.paymentType = ?5, t.isRecurringTransaction = ?6 WHERE t.transactionID = ?7")
-    int updateTransaction(String type, String category, double amount, String notes, String paymentType, boolean isRecurringTransaction, String transactionID);
+    int updateTransaction(String type, String category, double amount, String notes, String paymentType,
+            boolean isRecurringTransaction, String transactionID);
 }

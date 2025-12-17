@@ -4,6 +4,7 @@ import com.example.transaction_service.exception.TransactionException;
 import com.example.transaction_service.model.Savings;
 import com.example.transaction_service.model.Transaction;
 import com.example.transaction_service.repo.SavingsRepo;
+import com.example.transaction_service.repo.TransactionRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.util.UUID;
 public class SavingsService {
 
     private final SavingsRepo savingsRepo;
+    private final TransactionRepo transactionRepo;
 
 
     public double updateSaving(Transaction transaction) {
