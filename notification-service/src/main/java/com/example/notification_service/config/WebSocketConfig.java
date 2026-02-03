@@ -16,6 +16,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
         this.notificationWebSocketHandler = notificationWebSocketHandler;
     }
 
+    /**
+     * Registers the WebSocket handler with the given registry.
+     * 
+     * @param registry the WebSocket handler registry
+     */
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(notificationWebSocketHandler, "/ws/notifications")

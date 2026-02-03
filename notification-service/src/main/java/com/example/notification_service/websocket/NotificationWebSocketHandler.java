@@ -17,12 +17,25 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         this.sessionManager = sessionManager;
     }
 
+    /**
+     * Handles the establishment of a WebSocket connection.
+     * 
+     * @param session the WebSocket session
+     * @throws Exception if an error occurs
+     */
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         log.info("WebSocket connection established: {}", session.getId());
         // Client should send username as first message to register
     }
 
+    /**
+     * Handles incoming text messages from WebSocket clients.
+     * 
+     * @param session the WebSocket session
+     * @param message the incoming text message
+     * @throws Exception if an error occurs
+     */
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String payload = message.getPayload();
@@ -47,6 +60,13 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
+    /**
+     * Handles the closing of a WebSocket connection.
+     * 
+     * @param session the WebSocket session
+     * @param status  the status of the connection close
+     * @throws Exception if an error occurs
+     */
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         log.info("WebSocket connection closed: {} with status: {}", session.getId(), status);
@@ -54,14 +74,23 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         // this user
     }
 
+    /**
+     * Handles transport errors that occur during WebSocket communication.
+     * 
+     * @param session   the WebSocket session
+     * @param exception the exception that occurred
+     * @throws Exception if an error occurs
+     */
     @Override
     public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
         log.error("WebSocket transport error for session {}: {}", session.getId(), exception.getMessage());
     }
 
     /**
-     * Extract username from registration message
-     * Expected format: {"type": "register", "username": "john"}
+     * Extracts the username from a registration message.
+     * 
+     * @param payload the registration message
+     * @return the extracted username
      */
     private String extractUsername(String payload) {
         try {

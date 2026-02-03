@@ -24,6 +24,14 @@ public class BudgetNotificationService {
         this.objectMapper.registerModule(new JavaTimeModule());
     }
 
+    /**
+     * Notifies the user if their budget has been exceeded.
+     * 
+     * @param userId   The ID of the user.
+     * @param category The category of the budget.
+     * @param amount   The amount spent.
+     * @param limit    The budget limit.
+     */
     public void notifyOverspending(String userId, String category, double amount, double limit) {
         double exceeded = amount - limit;
         log.info("[Notification] User {} exceeded {} budget by {} (limit {}, spent {}).", userId, category, exceeded,
@@ -55,6 +63,14 @@ public class BudgetNotificationService {
         }
     }
 
+    /**
+     * Sends an in-app notification to the user.
+     * 
+     * @param username The username of the user.
+     * @param title    The title of the notification.
+     * @param message  The message of the notification.
+     * @param type     The type of the notification.
+     */
     private void sendInAppNotification(String username, String title, String message, String type) {
         try {
             NotificationDto dto = new NotificationDto(username, title, message, type);

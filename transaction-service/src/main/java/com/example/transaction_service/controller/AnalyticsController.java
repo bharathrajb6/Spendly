@@ -16,11 +16,17 @@ public class AnalyticsController {
 
     private final TransactionAnalyticsService transactionAnalyticsService;
 
+    /**
+     * Fetches the financial summary for a specific user.
+     * 
+     * @param username the username of the user
+     * @return a map containing the financial summary for the user
+     */
     @Operation(summary = "Fetch aggregate financial summary for a user", description = "Returns total income, total expense, and remaining balance accumulated across all transactions.")
     @GetMapping("/users/{username}/summary")
     public FinancialSummaryResponse getUserFinancialSummary(@PathVariable("username") String username) {
         var summary = transactionAnalyticsService.buildUserTransactionSummary(username);
-        return FinancialSummaryResponse.builder().totalIncome(summary.getTotalIncome()).totalExpense(summary.getTotalExpense()).remainingBalance(summary.getRemainingBalance()).build();
+        return FinancialSummaryResponse.builder().totalIncome(summary.getTotalIncome())
+                .totalExpense(summary.getTotalExpense()).remainingBalance(summary.getRemainingBalance()).build();
     }
 }
-

@@ -74,6 +74,12 @@ public class GoalController {
         return goalService.updateGoalsProgressForUser(userId);
     }
 
+    /**
+     * Gets the summary of goals for a user.
+     *
+     * @param userId the username of the user whose goals to retrieve
+     * @return the goal summary response object
+     */
     @Operation(summary = "Get goal summary for a user", description = "Provides aggregated counts for total and achieved goals.")
     @GetMapping("/goal/{userId}/summary")
     public GoalSummaryResponse getGoalSummary(@PathVariable("userId") String userId) {

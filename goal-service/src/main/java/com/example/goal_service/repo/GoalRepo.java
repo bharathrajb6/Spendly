@@ -21,7 +21,8 @@ public interface GoalRepo extends JpaRepository<Goal, String> {
      * Find a goal by its id.
      *
      * @param goalId the id of the goal to find
-     * @return an optional containing the goal if found, or an empty optional otherwise
+     * @return an optional containing the goal if found, or an empty optional
+     *         otherwise
      */
     Optional<Goal> findByGoalId(String goalId);
 
@@ -30,10 +31,10 @@ public interface GoalRepo extends JpaRepository<Goal, String> {
      *
      * @param username the username of the user who owns the goal
      * @param goalName the name of the goal to find
-     * @return an optional containing the goal if found, or an empty optional otherwise
+     * @return an optional containing the goal if found, or an empty optional
+     *         otherwise
      */
     Optional<Goal> findByUsernameAndGoalName(String username, String goalName);
-
 
     /**
      * Finds all goals associated with a given username.
@@ -54,7 +55,6 @@ public interface GoalRepo extends JpaRepository<Goal, String> {
     @Query("SELECT g FROM Goal g WHERE g.username = ?1")
     Page<Goal> findGoalByUsername(String username, Pageable pageable);
 
-
     /**
      * Updates the saved amount of a goal with the given id.
      *
@@ -65,7 +65,6 @@ public interface GoalRepo extends JpaRepository<Goal, String> {
     @Transactional
     @Query("UPDATE Goal g SET g.savedAmount = ?1 WHERE g.goalId = ?2")
     void updateGoalSavedAmount(double savedAmount, String goalId);
-
 
     /**
      * Updates the details of a goal with the given id.
@@ -90,7 +89,6 @@ public interface GoalRepo extends JpaRepository<Goal, String> {
     @Query("SELECT CASE WHEN COUNT(g) > 0 THEN true ELSE false END FROM Goal g WHERE g.username = ?1")
     boolean isAnyGoalPrentForThisUser(String username);
 
-
     /**
      * Updates the saved amount and progress percentage of a goal with the given id.
      *
@@ -102,7 +100,6 @@ public interface GoalRepo extends JpaRepository<Goal, String> {
     @Transactional
     @Query("UPDATE Goal g SET g.savedAmount = ?1, g.progressPercent = ?2 WHERE g.goalId = ?3")
     int updateGoalSavedAmountAndPercentage(double savedAmount, double percentage, String goalId);
-
 
     /**
      * Finds all goals associated with a given username and status.
@@ -123,7 +120,20 @@ public interface GoalRepo extends JpaRepository<Goal, String> {
     @Query("SELECT CASE WHEN COUNT(g) > 0 THEN true ELSE false END FROM Goal g WHERE g.goalId = ?1")
     boolean isGoalFound(String goalId);
 
+    /**
+     * Counts the number of goals for a given username.
+     *
+     * @param username the username of the user whose goals to count
+     * @return the number of goals for the given username
+     */
     long countByUsername(String username);
 
+    /**
+     * Counts the number of goals for a given username and status.
+     *
+     * @param username the username of the user whose goals to count
+     * @param status   the status of the goals to count
+     * @return the number of goals for the given username and status
+     */
     long countByUsernameAndStatus(String username, GoalStatus status);
 }

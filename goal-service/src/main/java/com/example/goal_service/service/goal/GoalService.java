@@ -50,6 +50,12 @@ public class GoalService {
     @Autowired
     private GoalNotificationService goalNotificationService;
 
+    /**
+     * Gets the goal summary for the given user.
+     * 
+     * @param username the username of the user
+     * @return the goal summary response object
+     */
     @Transactional(readOnly = true)
     public GoalSummaryResponse getGoalSummary(String username) {
         long totalGoals = goalRepo.countByUsername(username);
@@ -289,6 +295,13 @@ public class GoalService {
         }
     }
 
+    /**
+     * Recalculates the progress of all goals for the given user.
+     * 
+     * @param username     the username of the user
+     * @param totalIncome  the total income of the user
+     * @param totalExpense the total expense of the user
+     */
     @Transactional
     public void recalculateGoalProgress(String username, double totalIncome, double totalExpense) {
         Objects.requireNonNull(username, "Username cannot be null when recalculating goal progress.");
@@ -351,6 +364,12 @@ public class GoalService {
         log.info("Recalculated progress for {} goals belonging to user {}", activeGoals.size(), username);
     }
 
+    /**
+     * Updates the progress of all goals for the given user.
+     * 
+     * @param username the username of the user
+     * @return the list of goal response objects
+     */
     public List<GoalResponse> updateGoalsProgressForUser(String username) {
         if (username == null || username.isBlank()) {
             throw new GoalException("Username cannot be empty when updating goal progress.");
@@ -374,6 +393,12 @@ public class GoalService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Rounds the given value to two decimal places.
+     * 
+     * @param value the value to round
+     * @return the rounded value
+     */
     public double roundToTwoDecimals(double value) {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }

@@ -23,9 +23,25 @@ public class ReportService {
     @Autowired
     private EventProducer eventProducer;
 
-    public void generateReport(String username, String type, String startDate, String endDate) throws JsonProcessingException {
+    @Autowired
+    private ObjectMapper objectMapper;
 
-        List<Transaction> transactions = transactionService.getFilteredTransactionsForUser(username, startDate, endDate);
+    /**
+     * Generates a financial report for a user based on transaction history and
+     * sends it
+     * to the appropriate Kafka topic for processing (CSV or PDF).
+     *
+     * @param username  the username of the user requesting the report
+     * @param type      the format of the report ("CSV" or other for PDF)
+     * @param startDate the start date of the report period (ISO format)
+     * @param endDate   the end date of the report period (ISO format)
+     * @throws JsonProcessingException if an error occurs during JSON serialization
+     */
+    public void generateReport(String username, String type, String startDate, String endDate)
+            throws JsonProcessingException {
+
+        List<Transaction> transactions = transactionService.getFilteredTransactionsForUser(username, startDate,
+                endDate);
 
         ReportData reportData = new ReportData();
         reportData.setUsername(username);
@@ -33,7 +49,7 @@ public class ReportService {
         reportData.setStartDate(LocalDate.parse(startDate));
         reportData.setEndDate(LocalDate.parse(endDate));
 
-        String jsonValue = new ObjectMapper().writeValueAsString(reportData);
+        String jsonValue = objectMapper.writeValueAsString(reportData);
 
         if (type.equals("CSV")) {
             eventProducer.sendTopic("REPORT-CSV", jsonValue);

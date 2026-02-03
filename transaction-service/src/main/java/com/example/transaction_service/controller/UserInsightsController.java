@@ -16,6 +16,14 @@ public class UserInsightsController {
 
     private final FinancialHealthService financialHealthService;
 
+    /**
+     * Retrieves the financial health score for the given user.
+     *
+     * @param userId The username for which the financial health score is being
+     *               retrieved.
+     * @return The financial health score for the given user.
+     * @throws TransactionException If the username is null.
+     */
     @Operation(summary = "Get the financial health score for a user", description = "Calculates a composite score between 0 and 100 using savings, spending stability, and goal completion metrics.")
     @GetMapping("/{userId}/health-score")
     public FinancialHealthResponse getHealthScore(@PathVariable("userId") String userId) {

@@ -41,6 +41,12 @@ public class BudgetService {
     private final TransactionAnalyticsService transactionAnalyticsService;
     private final BudgetNotificationService budgetNotificationService;
 
+    /**
+     * Creates default budgets for the given user.
+     * 
+     * @param userId The ID of the user.
+     * @return A list of BudgetResponse objects.
+     */
     @Transactional
     public List<BudgetResponse> createDefaultBudgets(String userId) {
         YearMonth current = YearMonth.now();
@@ -52,6 +58,13 @@ public class BudgetService {
         return responses;
     }
 
+    /**
+     * Handles transaction events by recalculating budgets for the affected
+     * categories.
+     * 
+     * @param currentState  The current state of the transaction.
+     * @param previousState The previous state of the transaction.
+     */
     @Transactional
     public void handleTransactionEvent(Transaction currentState, Transaction previousState) {
         if (currentState != null && currentState.getUsername() != null
@@ -67,6 +80,13 @@ public class BudgetService {
         }
     }
 
+    /**
+     * Retrieves all budgets for the given user for the specified period.
+     * 
+     * @param userId The ID of the user.
+     * @param period The period to retrieve budgets for.
+     * @return A list of BudgetResponse objects.
+     */
     @Transactional(readOnly = true)
     public List<BudgetResponse> getBudgetsForUser(String userId, YearMonth period) {
         YearMonth target = period != null ? period : YearMonth.now();
@@ -74,6 +94,13 @@ public class BudgetService {
                 .map(this::toResponse).collect(Collectors.toList());
     }
 
+    /**
+     * Updates the budget for the given user and category.
+     * 
+     * @param budgetId       The ID of the budget to update.
+     * @param newLimitAmount The new limit amount for the budget.
+     * @return The updated BudgetResponse.
+     */
     @Transactional
     public BudgetResponse updateBudget(String budgetId, Double newLimitAmount) {
         if (budgetId == null) {
@@ -93,6 +120,13 @@ public class BudgetService {
         return toResponse(budget);
     }
 
+    /**
+     * Generates budget recommendations for the given user based on their spending
+     * patterns.
+     * 
+     * @param userId The ID of the user.
+     * @return A list of BudgetRecommendationResponse objects.
+     */
     @Transactional
     public List<BudgetRecommendationResponse> generateRecommendations(String userId) {
         Map<String, Double> averageByCategory = transactionAnalyticsService.calculateAverageExpenseByCategory(userId,
@@ -131,6 +165,14 @@ public class BudgetService {
         return recommendations;
     }
 
+    /**
+     * Recalculates the budget for the given user and category for the specified
+     * period.
+     * 
+     * @param userId   The ID of the user.
+     * @param category The category of the budget.
+     * @param period   The period to recalculate the budget for.
+     */
     @Transactional
     public void recalculateBudgetForCategory(String userId, String category, YearMonth period) {
         if (userId == null || category == null) {
@@ -150,6 +192,16 @@ public class BudgetService {
         }
     }
 
+    /**
+     * Ensures that a budget exists for the given user and category for the
+     * specified period.
+     * 
+     * @param userId       The ID of the user.
+     * @param category     The category of the budget.
+     * @param period       The period to ensure the budget for.
+     * @param defaultLimit The default limit amount for the budget.
+     * @return The Budget object.
+     */
     private Budget ensureBudget(String userId, String category, YearMonth period, double defaultLimit) {
         return budgetRepo
                 .findByUserIdAndCategoryAndMonthAndYear(userId, category, period.getMonthValue(), period.getYear())
@@ -158,6 +210,15 @@ public class BudgetService {
                         .orElseGet(() -> buildBudget(userId, category, period, defaultLimit)));
     }
 
+    /**
+     * Builds a new budget object.
+     * 
+     * @param userId   The ID of the user.
+     * @param category The category of the budget.
+     * @param period   The period of the budget.
+     * @param limit    The limit amount for the budget.
+     * @return The Budget object.
+     */
     private Budget buildBudget(String userId, String category, YearMonth period, double limit) {
         Budget budget = Budget.builder().budgetId(UUID.randomUUID().toString()).userId(userId).category(category)
                 .limitAmount(roundTwoDecimals(limit)).month(period.getMonthValue()).year(period.getYear())
@@ -165,6 +226,12 @@ public class BudgetService {
         return budgetRepo.save(budget);
     }
 
+    /**
+     * Resolves the period from a timestamp.
+     * 
+     * @param timestamp The timestamp to resolve the period from.
+     * @return The resolved period.
+     */
     private YearMonth resolvePeriod(Timestamp timestamp) {
         if (timestamp == null) {
             return YearMonth.now();
@@ -173,10 +240,22 @@ public class BudgetService {
         return YearMonth.of(dateTime.getYear(), dateTime.getMonth());
     }
 
+    /**
+     * Normalizes the category.
+     * 
+     * @param category The category to normalize.
+     * @return The normalized category.
+     */
     private String normalizeCategory(String category) {
         return category == null ? "UNCATEGORIZED" : category.toUpperCase();
     }
 
+    /**
+     * Converts a Budget object to a BudgetResponse object.
+     * 
+     * @param budget The Budget object to convert.
+     * @return The BudgetResponse object.
+     */
     private BudgetResponse toResponse(Budget budget) {
         return BudgetResponse.builder().budgetId(budget.getBudgetId()).userId(budget.getUserId())
                 .category(budget.getCategory()).limitAmount(budget.getLimitAmount()).month(budget.getMonth())
@@ -184,6 +263,12 @@ public class BudgetService {
                 .recommendedLimitAmount(budget.getRecommendedLimitAmount()).build();
     }
 
+    /**
+     * Rounds a double value to two decimal places.
+     * 
+     * @param value The double value to round.
+     * @return The rounded double value.
+     */
     private double roundTwoDecimals(double value) {
         return Math.round(value * 100.0) / 100.0;
     }

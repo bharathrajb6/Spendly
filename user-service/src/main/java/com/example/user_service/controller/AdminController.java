@@ -22,7 +22,12 @@ public class AdminController {
     private final UserRepo userRepo;
 
     /**
-     * Get all users - admin only
+     * Retrieves all users from the system.
+     * This endpoint is restricted to users with the ADMIN role.
+     *
+     * @param adminUsername the username of the administrator making the request
+     * @return a ResponseEntity containing a list of user details or an error
+     *         message
      */
     @GetMapping("/users")
     public ResponseEntity<?> getAllUsers(@RequestHeader(value = "X-Username") String adminUsername) {
@@ -49,7 +54,13 @@ public class AdminController {
     }
 
     /**
-     * Get admin dashboard statistics
+     * Retrieves statistics for the admin dashboard.
+     * Includes total users, active/inactive counts, and new user counts for the
+     * week/month.
+     *
+     * @param adminUsername the username of the administrator making the request
+     * @return a ResponseEntity containing various user statistics or an error
+     *         message
      */
     @GetMapping("/stats")
     public ResponseEntity<?> getAdminStats(@RequestHeader(value = "X-Username") String adminUsername) {
@@ -89,7 +100,12 @@ public class AdminController {
     }
 
     /**
-     * Toggle user active status
+     * Toggles the active status of a specific user.
+     * Accessible only by administrators.
+     *
+     * @param adminUsername the username of the administrator making the request
+     * @param username      the username of the user whose status is being toggled
+     * @return a ResponseEntity with the updated status or an error message
      */
     @PutMapping("/users/{username}/toggle-active")
     public ResponseEntity<?> toggleUserActive(
@@ -120,7 +136,11 @@ public class AdminController {
     }
 
     /**
-     * Promote user to admin
+     * Promotes a regular user to the ADMIN role.
+     *
+     * @param adminUsername the username of the administrator making the request
+     * @param username      the username of the user to be promoted
+     * @return a ResponseEntity indicating success or failure
      */
     @PutMapping("/users/{username}/make-admin")
     public ResponseEntity<?> makeUserAdmin(
@@ -150,7 +170,12 @@ public class AdminController {
     }
 
     /**
-     * Demote admin to regular user
+     * Demotes an administrator to a regular USER role.
+     * Administrators cannot demote themselves.
+     *
+     * @param adminUsername the username of the administrator making the request
+     * @param username      the username of the administrator to be demoted
+     * @return a ResponseEntity indicating success or failure
      */
     @PutMapping("/users/{username}/remove-admin")
     public ResponseEntity<?> removeUserAdmin(
@@ -185,7 +210,10 @@ public class AdminController {
     }
 
     /**
-     * Get current user's role
+     * Retrieves the role and admin status of a specific user.
+     *
+     * @param username the username of the user whose role is being requested
+     * @return a ResponseEntity containing the user's role and boolean admin status
      */
     @GetMapping("/role")
     public ResponseEntity<?> getUserRole(@RequestHeader(value = "X-Username") String username) {
@@ -203,7 +231,10 @@ public class AdminController {
     }
 
     /**
-     * Helper method to check if user is admin
+     * Helper method to verify if a user has administrative privileges.
+     *
+     * @param username the username to check
+     * @return true if the user exists and has a role of 'ADMIN', false otherwise
      */
     private boolean isAdmin(String username) {
         if (username == null || username.isEmpty()) {

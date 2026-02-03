@@ -93,6 +93,14 @@ public class UserService {
         return true;
     }
 
+    /**
+     * Initializes default budgets for a newly registered user by making an
+     * asynchronous
+     * call to the Transaction Service.
+     *
+     * @param username the username of the user for whom budgets should be
+     *                 initialized
+     */
     private void initializeDefaultBudgets(String username) {
         String url = String.format("%s/budget/default/%s", transactionServiceBaseUrl, username);
         try {
@@ -202,6 +210,13 @@ public class UserService {
         throw new UserException("User not found with this username");
     }
 
+    /**
+     * Deletes a user from the system and removes their cached data.
+     *
+     * @param username the username of the user to be deleted
+     * @throws UserException if the username is null/empty or if the user is not
+     *                       found
+     */
     public void deleteUser(String username) {
 
         if (username == null || username.isEmpty()) {

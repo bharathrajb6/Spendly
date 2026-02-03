@@ -25,7 +25,11 @@ public class WebSocketSessionManager {
     }
 
     /**
-     * Register a WebSocket session for a user
+     * Registers a WebSocket session for a user, mapping their username to the
+     * active session.
+     *
+     * @param username the username of the user
+     * @param session  the WebSocket session to register
      */
     public void registerSession(String username, WebSocketSession session) {
         sessions.put(username, session);
@@ -33,7 +37,9 @@ public class WebSocketSessionManager {
     }
 
     /**
-     * Remove a WebSocket session for a user
+     * Removes the WebSocket session associated with a user.
+     *
+     * @param username the username of the user whose session should be removed
      */
     public void removeSession(String username) {
         sessions.remove(username);
@@ -41,7 +47,11 @@ public class WebSocketSessionManager {
     }
 
     /**
-     * Send a notification to a specific user
+     * Sends a notification object to a specific user via their active WebSocket
+     * session.
+     *
+     * @param username     the username of the recipient
+     * @param notification the notification object to be serialized and sent
      */
     public void sendToUser(String username, Object notification) {
         WebSocketSession session = sessions.get(username);
@@ -59,7 +69,9 @@ public class WebSocketSessionManager {
     }
 
     /**
-     * Broadcast a notification to all connected users
+     * Broadcasts a notification object to all currently connected users.
+     *
+     * @param notification the notification object to be broadcasted
      */
     public void broadcast(Object notification) {
         sessions.forEach((username, session) -> {
@@ -70,7 +82,10 @@ public class WebSocketSessionManager {
     }
 
     /**
-     * Check if a user has an active session
+     * Checks if a user currently has an active and open WebSocket session.
+     *
+     * @param username the username to check
+     * @return true if the session exists and is open, false otherwise
      */
     public boolean hasActiveSession(String username) {
         WebSocketSession session = sessions.get(username);
@@ -78,7 +93,9 @@ public class WebSocketSessionManager {
     }
 
     /**
-     * Get count of active sessions
+     * Retrieves the total count of currently active and open WebSocket sessions.
+     *
+     * @return the number of active sessions
      */
     public int getActiveSessionCount() {
         return (int) sessions.values().stream().filter(WebSocketSession::isOpen).count();

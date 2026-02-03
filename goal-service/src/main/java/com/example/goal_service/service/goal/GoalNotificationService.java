@@ -4,7 +4,6 @@ import com.example.goal_service.exception.GoalException;
 import com.example.goal_service.kafka.EmailDto;
 import com.example.goal_service.kafka.EventProducer;
 import com.example.goal_service.kafka.NotificationDto;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
@@ -25,6 +24,13 @@ public class GoalNotificationService {
         this.objectMapper.registerModule(new JavaTimeModule());
     }
 
+    /**
+     * Notifies the user that their goal has been achieved.
+     * 
+     * @param username     the username of the user who achieved the goal
+     * @param goalName     the name of the goal that was achieved
+     * @param targetAmount the target amount of the goal that was achieved
+     */
     public void notifyGoalAchieved(String username, String goalName, double targetAmount) {
         log.info("[Notification] Goal achieved for user {}: {} (target: {})", username, goalName, targetAmount);
 
@@ -48,6 +54,14 @@ public class GoalNotificationService {
         }
     }
 
+    /**
+     * Sends an in-app notification to the user.
+     * 
+     * @param username the username of the user to send the notification to
+     * @param title    the title of the notification
+     * @param message  the message of the notification
+     * @param type     the type of the notification
+     */
     private void sendInAppNotification(String username, String title, String message, String type) {
         try {
             NotificationDto dto = new NotificationDto(username, title, message, type);

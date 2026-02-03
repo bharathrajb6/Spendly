@@ -26,6 +26,13 @@ import java.util.List;
 public class ReportGenerateService {
 
 
+    /**
+     * Exports transaction data to a CSV byte array.
+     *
+     * @param reportData the data to export
+     * @return byte array of the CSV file
+     * @throws IOException if writing fails
+     */
     @KafkaListener(topics = "REPORT-CSV", groupId = "export-report-service", containerFactory = "reportDataKafkaListenerContainerFactory")
     public byte[] exportToCSV(ReportData reportData) throws IOException {
 
@@ -39,19 +46,20 @@ public class ReportGenerateService {
 
         DecimalFormat df = new DecimalFormat("#.00");
         for (TransactionResponse t : transactions) {
-            writer.writeNext(new String[]{
-                    t.getTransactionID(),
-                    t.getPaymentType(),
-                    t.getCategory(),
-                    df.format(t.getAmount()),
-                    t.getTransactionDate().toString()
-            });
+            writer.writeNext(new String[]{t.getTransactionID(), t.getPaymentType(), t.getCategory(), df.format(t.getAmount()), t.getTransactionDate().toString()});
         }
         writer.close();
         return out.toByteArray();
     }
 
 
+    /**
+     * Exports transaction data to a PDF byte array.
+     *
+     * @param reportData
+     * @return
+     * @throws IOException
+     */
     @KafkaListener(topics = "REPORT-PDF", groupId = "export-report-service", containerFactory = "reportDataKafkaListenerContainerFactory")
     public byte[] exportToPDF(ReportData reportData) throws IOException {
 
@@ -62,17 +70,18 @@ public class ReportGenerateService {
         Document document = new Document(pdf);
 
         document.add(new Paragraph("Transaction Report").setBold().setFontSize(16).setMarginBottom(15));
-        Table table = new Table(UnitValue.createPercentArray(new float[]{2, 2, 2, 2}));
+        Table table = new Table(UnitValue.createPercentArray(new float[]{2, 2, 2, 2, 2}));
         table.setWidth(UnitValue.createPercentValue(100));
 
-        String[] headers = {"Transaction ID", "Type", "Amount", "Date"};
+        String[] headers = {"Transaction ID", "Type", "Category", "Amount", "Date"};
         for (String h : headers)
             table.addHeaderCell(new Cell().add(new Paragraph(h).setBold()));
 
         DecimalFormat df = new DecimalFormat("#.00");
         for (TransactionResponse t : transactions) {
             table.addCell(t.getTransactionID());
-            table.addCell(t.getType());
+            table.addCell(t.getPaymentType());
+            table.addCell(t.getCategory());
             table.addCell(df.format(t.getAmount()));
             table.addCell(t.getTransactionDate().toString());
         }

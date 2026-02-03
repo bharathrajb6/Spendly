@@ -381,11 +381,11 @@ public class TransactionService {
 
         try {
             // Check if the category is a valid income category
-            IncomeCategory incomeCategory = IncomeCategory.valueOf(value.toUpperCase());
+            IncomeCategory.valueOf(value.toUpperCase());
         } catch (Exception exception) {
             // If not, check if it's a valid expense category
             try {
-                ExpenseCategory expenseCategory = ExpenseCategory.valueOf(value.toUpperCase());
+                ExpenseCategory.valueOf(value.toUpperCase());
             } catch (Exception exception1) {
                 // If neither, throw exception
                 throw new TransactionException("Invalid category");
@@ -436,11 +436,11 @@ public class TransactionService {
 
         try {
             // Check if the category is a valid income category
-            IncomeCategory incomeCategory = IncomeCategory.valueOf(value.toUpperCase());
+            IncomeCategory.valueOf(value.toUpperCase());
         } catch (Exception exception) {
             try {
                 // If not, check if it's a valid expense category
-                ExpenseCategory expenseCategory = ExpenseCategory.valueOf(value.toUpperCase());
+                ExpenseCategory.valueOf(value.toUpperCase());
             } catch (Exception exception1) {
                 // If neither, throw exception
                 throw new TransactionException("Invalid category");
@@ -645,6 +645,17 @@ public class TransactionService {
         }
     }
 
+    /**
+     * Retrieves a list of transactions for a specific user within a date range.
+     * Unlike getFilteredTransaction, this returns a List instead of a Page.
+     *
+     * @param username  the username of the user
+     * @param startDate the start of the date range (ISO format)
+     * @param endDate   the end of the date range (ISO format)
+     * @return a list of transactions matching the criteria
+     * @throws TransactionException if the date format is invalid or range is
+     *                              incorrect
+     */
     public List<Transaction> getFilteredTransactionsForUser(String username, String startDate, String endDate) {
 
         LocalDate start, end;
