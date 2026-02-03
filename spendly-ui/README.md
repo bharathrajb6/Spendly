@@ -1,16 +1,49 @@
-# React + Vite
+# Spendly UI - Premium Financial Dashboard
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is the frontend application for the **Spendly** Personal Finance Management System. It provides a sleek, high-performance interface for managing your wealth.
 
-Currently, two official plugins are available:
+## 🚀 Key Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+*   **Financial Overview**: Interactive charts and cards showing your net worth, income, and expenses.
+*   **Transaction Hub**: A centralized place to view, add, and filter your financial history.
+*   **Goal Tracking**: Visual progress bars and milestone tracking for your savings goals.
+*   **Account Settings**: Securely update your profile, change your password, and manage your account status.
+*   **Live Notifications**: Real-time feedback and system alerts delivered via WebSockets.
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+*   **React 19**: Leveraging the latest features for a reactive and performant UI.
+*   **Vite**: Lightning-fast development and optimized production builds.
+*   **Vanilla CSS**: Custom-crafted styles with a focus on premium aesthetics (Glassmorphism, Vibrant Gradients).
+*   **State Management**: React Context & Hooks for efficient data flow.
+*   **Communication**: Axios for RESTful APIs and STOMP for real-time WebSocket communication.
 
-## Expanding the ESLint configuration
+## 📦 Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+*   **Node.js**: v18 or higher
+*   **Local Backend**: The UI expects the Spendly Backend to be running on `http://localhost:8080`.
+
+### Setup
+1.  **Install Dependencies**:
+    ```bash
+    npm install
+    ```
+2.  **Run Development Server**:
+    ```bash
+    npm run dev
+    ```
+3.  **Build for Production**:
+    ```bash
+    npm run build
+    ```
+
+## 🏗️ Folder Structure
+*   `src/api`: Centralized API calls for all microservices.
+*   `src/components`: UI components organized by feature.
+*   `src/context`: Global state providers (User, Theme, Notifications).
+*   `src/pages`: Main application views (Dashboard, Transactions, Settings, etc.).
+*   `src/styles`: Design tokens, global variables, and utility classes.
+
+---
+This UI is a core part of the larger **Spendly** Microservices Ecosystem. For information on the backend services and full system deployment, please refer to the [Root README](../README.md).
