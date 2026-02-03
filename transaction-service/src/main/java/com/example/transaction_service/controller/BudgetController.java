@@ -1,5 +1,6 @@
 package com.example.transaction_service.controller;
 
+import com.example.transaction_service.dto.request.BudgetUpdateRequest;
 import com.example.transaction_service.dto.response.budget.BudgetRecommendationResponse;
 import com.example.transaction_service.dto.response.budget.BudgetResponse;
 import com.example.transaction_service.service.budget.BudgetService;
@@ -9,6 +10,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -31,8 +34,16 @@ public class BudgetController {
 
     @Operation(summary = "Get monthly budgets for a user", description = "Returns budget allocations for the specified month. Defaults to current month if not provided.")
     @GetMapping("/{userId}")
-    public List<BudgetResponse> getBudgetsForMonth(@PathVariable("userId") String userId, @RequestParam(value = "month", required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
+    public List<BudgetResponse> getBudgetsForMonth(@PathVariable("userId") String userId,
+            @RequestParam(value = "month", required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth month) {
         return budgetService.getBudgetsForUser(userId, month);
+    }
+
+    @Operation(summary = "Update a budget", description = "Updates the limit amount for a specific budget.")
+    @PutMapping("/{budgetId}")
+    public BudgetResponse updateBudget(@PathVariable("budgetId") String budgetId,
+            @RequestBody BudgetUpdateRequest request) {
+        return budgetService.updateBudget(budgetId, request.getLimitAmount());
     }
 
     @Operation(summary = "Get budget recommendations", description = "Provides category-wise budget adjustments based on the last three months of spending.")

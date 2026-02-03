@@ -115,7 +115,7 @@ export default function Goals() {
                     <div className="current-savings-content">
                         <div className="current-savings-label">Current Savings</div>
                         <div className="current-savings-value">
-                            ${(currentSavings || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            ₹{(currentSavings || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                         <div className="current-savings-subtitle">Available for your goals</div>
                     </div>
@@ -171,8 +171,8 @@ export default function Goals() {
                                         ></div>
                                     </div>
                                     <div className="goal-amounts">
-                                        <span className="goal-current">${(goal.current || 0).toLocaleString()}</span>
-                                        <span>of ${(goal.target || 0).toLocaleString()}</span>
+                                        <span className="goal-current">₹{(goal.current || 0).toLocaleString()}</span>
+                                        <span>of ₹{(goal.target || 0).toLocaleString()}</span>
                                     </div>
                                 </div>
 
@@ -212,11 +212,11 @@ export default function Goals() {
                         </div>
                         <div className="overall-progress-stat">
                             <div className="overall-progress-stat-label">Total Target</div>
-                            <div className="overall-progress-stat-value">${goals.reduce((sum, g) => sum + (g.target || 0), 0).toLocaleString()}</div>
+                            <div className="overall-progress-stat-value">₹{goals.reduce((sum, g) => sum + (g.target || 0), 0).toLocaleString()}</div>
                         </div>
                         <div className="overall-progress-stat">
                             <div className="overall-progress-stat-label">Total Saved</div>
-                            <div className="overall-progress-stat-value">${goals.reduce((sum, g) => sum + (g.current || 0), 0).toLocaleString()}</div>
+                            <div className="overall-progress-stat-value">₹{goals.reduce((sum, g) => sum + (g.current || 0), 0).toLocaleString()}</div>
                         </div>
                     </div>
                 </div>
@@ -262,7 +262,7 @@ export default function Goals() {
                                     <span style={{ marginRight: '8px' }}>{deleteConfirm.icon}</span>
                                     <strong>{deleteConfirm.name}</strong>
                                     <span style={{ marginLeft: 'auto' }}>
-                                        ${(deleteConfirm.target || 0).toLocaleString()}
+                                        ₹{(deleteConfirm.target || 0).toLocaleString()}
                                     </span>
                                 </div>
                                 <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: 'var(--spacing-sm)' }}>
@@ -348,7 +348,7 @@ function AddGoalModal({ onClose, onAdd, icons }) {
                             </div>
                         </div>
                         <div className="input-group" style={{ marginTop: 'var(--spacing-md)' }}>
-                            <label>Target Amount ($)</label>
+                            <label>Target Amount (₹)</label>
                             <input
                                 type="number"
                                 className="input"
@@ -415,14 +415,14 @@ function AddFundsModal({ goal, onClose, onAdd }) {
                         <div className="add-funds-info">
                             <div className="add-funds-current">
                                 <span className="text-secondary">Current Progress</span>
-                                <span className="font-bold">${goal.current.toLocaleString()} / ${goal.target.toLocaleString()}</span>
+                                <span className="font-bold">₹{goal.current.toLocaleString()} / ₹{goal.target.toLocaleString()}</span>
                             </div>
                             <div className="progress-bar" style={{ marginTop: 'var(--spacing-sm)' }}>
                                 <div className="progress-bar-fill" style={{ width: `${goal.progress}%` }}></div>
                             </div>
                         </div>
                         <div className="input-group" style={{ marginTop: 'var(--spacing-lg)' }}>
-                            <label>Amount to Add ($)</label>
+                            <label>Amount to Add (₹)</label>
                             <input
                                 type="number"
                                 className="input"
@@ -485,15 +485,15 @@ function ViewDetailsModal({ goal, onClose }) {
                     <div className="goal-detail-grid" style={{ marginTop: 'var(--spacing-lg)' }}>
                         <div className="goal-detail-item">
                             <div className="goal-detail-label">Target Amount</div>
-                            <div className="goal-detail-value">${(goal.target || 0).toLocaleString()}</div>
+                            <div className="goal-detail-value">₹{(goal.target || 0).toLocaleString()}</div>
                         </div>
                         <div className="goal-detail-item">
                             <div className="goal-detail-label">Saved Amount</div>
-                            <div className="goal-detail-value" style={{ color: 'var(--success)' }}>${(goal.current || 0).toLocaleString()}</div>
+                            <div className="goal-detail-value" style={{ color: 'var(--success)' }}>₹{(goal.current || 0).toLocaleString()}</div>
                         </div>
                         <div className="goal-detail-item">
                             <div className="goal-detail-label">Remaining</div>
-                            <div className="goal-detail-value" style={{ color: 'var(--warning)' }}>${remaining.toLocaleString()}</div>
+                            <div className="goal-detail-value" style={{ color: 'var(--warning)' }}>₹{remaining.toLocaleString()}</div>
                         </div>
                         <div className="goal-detail-item">
                             <div className="goal-detail-label">Deadline</div>
@@ -521,7 +521,7 @@ function ViewDetailsModal({ goal, onClose }) {
                     {remaining > 0 && daysLeft > 0 && (
                         <div className="goal-detail-tip" style={{ marginTop: 'var(--spacing-lg)' }}>
                             <span className="tip-icon">💡</span>
-                            <span>Save <strong>${dailySavingsNeeded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> per day to reach your goal on time!</span>
+                            <span>Save <strong>₹{dailySavingsNeeded.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong> per day to reach your goal on time!</span>
                         </div>
                     )}
 

@@ -205,7 +205,7 @@ export default function Dashboard() {
                         </div>
                         <div className="summary-card-content">
                             <div className="summary-card-label">Total Balance</div>
-                            <div className="summary-card-value">${totalBalance.toLocaleString()}</div>
+                            <div className="summary-card-value">₹{totalBalance.toLocaleString()}</div>
                         </div>
                         <span className="summary-card-trend positive">
                             <ArrowUpRight size={14} /> +12%
@@ -218,7 +218,7 @@ export default function Dashboard() {
                         </div>
                         <div className="summary-card-content">
                             <div className="summary-card-label">Monthly Income</div>
-                            <div className="summary-card-value">${monthlyIncome.toLocaleString()}</div>
+                            <div className="summary-card-value">₹{monthlyIncome.toLocaleString()}</div>
                         </div>
                         <span className="summary-card-trend positive">
                             <ArrowUpRight size={14} /> +8%
@@ -231,7 +231,7 @@ export default function Dashboard() {
                         </div>
                         <div className="summary-card-content">
                             <div className="summary-card-label">Monthly Expenses</div>
-                            <div className="summary-card-value">${monthlyExpenses.toLocaleString()}</div>
+                            <div className="summary-card-value">₹{monthlyExpenses.toLocaleString()}</div>
                         </div>
                         <span className="summary-card-trend negative">
                             <ArrowDownRight size={14} /> -5%
@@ -271,7 +271,7 @@ export default function Dashboard() {
                                         style={{ background: spendingData.datasets[0].backgroundColor[idx] }}
                                     ></span>
                                     <span className="spending-legend-label">{label}</span>
-                                    <span className="spending-legend-value">${spendingData.datasets[0].data[idx].toLocaleString()}</span>
+                                    <span className="spending-legend-value">₹{spendingData.datasets[0].data[idx].toLocaleString()}</span>
                                 </div>
                             ))}
                         </div>
@@ -318,7 +318,7 @@ export default function Dashboard() {
                                         </div>
                                     </div>
                                     <div className={`transaction-amount ${tx.type === 'INCOME' ? 'income' : 'expense'}`}>
-                                        {tx.type === 'INCOME' ? '+' : '-'}${Math.abs(tx.amount).toLocaleString()}
+                                        {tx.type === 'INCOME' ? '+' : '-'}₹{Math.abs(tx.amount).toLocaleString()}
                                     </div>
                                 </div>
                             ))
@@ -546,7 +546,7 @@ function AddGoalModal({ onClose, onAdd }) {
                             />
                         </div>
                         <div className="input-group" style={{ marginTop: 'var(--spacing-md)' }}>
-                            <label>Target Amount ($)</label>
+                            <label>Target Amount (₹)</label>
                             <input
                                 type="number"
                                 className="input"

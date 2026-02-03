@@ -111,7 +111,8 @@ public class UserDataValidation {
 
     /**
      * Validates the contact number.
-     * The contact number should not be null or empty and should contain only digits with a length between 7 and 15.
+     * The contact number should not be null or empty and should contain only digits
+     * with a length between 7 and 15.
      *
      * @param contactNumber The contact number to validate.
      * @return True if the contact number is valid, false otherwise.
@@ -158,11 +159,36 @@ public class UserDataValidation {
      */
     public static boolean validateUserRequest(UserRequest userRequest) {
         log.info("Validating user request for username: {}", userRequest.getUsername());
-        boolean isValid = isValidFirstName(userRequest.getFirstName()) && isValidLastName(userRequest.getLastName()) && isValidEmail(userRequest.getEmail()) && isValidUsername(userRequest.getUsername()) && isValidPassword(userRequest.getPassword()) && isValidContactNumber(userRequest.getContactNumber());
+        boolean isValid = isValidFirstName(userRequest.getFirstName()) && isValidLastName(userRequest.getLastName())
+                && isValidEmail(userRequest.getEmail()) && isValidUsername(userRequest.getUsername())
+                && isValidPassword(userRequest.getPassword()) && isValidContactNumber(userRequest.getContactNumber());
         if (isValid) {
             log.info("User request validation successful for username: {}", userRequest.getUsername());
         } else {
             log.warn("User request validation failed for username: {}", userRequest.getUsername());
+        }
+        return isValid;
+    }
+
+    /**
+     * Validates attributes of a UserRequest object specifically for updates.
+     * Password and Contact Number are optional for basic profile updates.
+     *
+     * @param userRequest The UserRequest object to validate.
+     * @return True if all required attributes for update are valid, false
+     *         otherwise.
+     */
+    public static boolean validateUserUpdateRequest(UserRequest userRequest) {
+        log.info("Validating user update request for username: {}", userRequest.getUsername());
+        boolean isValid = isValidFirstName(userRequest.getFirstName()) &&
+                isValidLastName(userRequest.getLastName()) &&
+                isValidEmail(userRequest.getEmail()) &&
+                isValidUsername(userRequest.getUsername());
+
+        if (isValid) {
+            log.info("User update request validation successful for username: {}", userRequest.getUsername());
+        } else {
+            log.warn("User update request validation failed for username: {}", userRequest.getUsername());
         }
         return isValid;
     }

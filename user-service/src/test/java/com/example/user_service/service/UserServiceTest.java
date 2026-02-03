@@ -14,7 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Optional;
 
@@ -35,7 +35,7 @@ class UserServiceTest {
     private RedisService redisService;
 
     @Mock
-    private RestTemplate restTemplate;
+    private WebClient.Builder webClientBuilder;
 
     @InjectMocks
     private UserService userService;
@@ -106,9 +106,7 @@ class UserServiceTest {
         when(userRepo.findByUsername(anyString())).thenReturn(Optional.empty());
 
         // Act & Assert
-        assertThrows(UserException.class, () -> 
-            userService.validateUserCredentials(testAuthRequest)
-        );
+        assertThrows(UserException.class, () -> userService.validateUserCredentials(testAuthRequest));
     }
 
     @Test
@@ -118,6 +116,19 @@ class UserServiceTest {
         when(userRepo.findByUsername(anyString())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
         when(userRepo.save(any(User.class))).thenReturn(testUser);
+
+        // Mock WebClient chain for initializeDefaultBudgets
+        WebClient mockWebClient = mock(WebClient.class);
+        WebClient.RequestBodyUriSpec mockRequestBodyUriSpec = mock(WebClient.RequestBodyUriSpec.class);
+        WebClient.RequestBodySpec mockRequestBodySpec = mock(WebClient.RequestBodySpec.class);
+        WebClient.ResponseSpec mockResponseSpec = mock(WebClient.ResponseSpec.class);
+        reactor.core.publisher.Mono<Void> mockMono = reactor.core.publisher.Mono.empty();
+
+        when(webClientBuilder.build()).thenReturn(mockWebClient);
+        when(mockWebClient.post()).thenReturn(mockRequestBodyUriSpec);
+        when(mockRequestBodyUriSpec.uri(anyString())).thenReturn(mockRequestBodySpec);
+        when(mockRequestBodySpec.retrieve()).thenReturn(mockResponseSpec);
+        when(mockResponseSpec.bodyToMono(Void.class)).thenReturn(mockMono);
 
         // Act
         boolean result = userService.registerUser(testUserRequest);
@@ -135,9 +146,7 @@ class UserServiceTest {
         when(userRepo.findByUsername(anyString())).thenReturn(Optional.of(testUser));
 
         // Act & Assert
-        assertThrows(UserException.class, () -> 
-            userService.registerUser(testUserRequest)
-        );
+        assertThrows(UserException.class, () -> userService.registerUser(testUserRequest));
     }
 
     @Test
@@ -162,7 +171,7 @@ class UserServiceTest {
         // Arrange
         when(userRepo.findByUsername(anyString())).thenReturn(Optional.of(testUser));
         when(userRepo.updateUserDetailsByUsername(anyString(), anyString(), anyString(), anyString(), anyString()))
-            .thenReturn(1);
+                .thenReturn(1);
 
         // Act
         UserResponse response = userService.updateUserDetails(testUserRequest);
@@ -171,12 +180,11 @@ class UserServiceTest {
         assertNotNull(response);
         verify(redisService).deleteData(testUserRequest.getUsername());
         verify(userRepo).updateUserDetailsByUsername(
-            eq(testUserRequest.getUsername()),
-            eq(testUserRequest.getFirstName()),
-            eq(testUserRequest.getLastName()),
-            eq(testUserRequest.getEmail()),
-            eq(testUserRequest.getContactNumber())
-        );
+                eq(testUserRequest.getUsername()),
+                eq(testUserRequest.getFirstName()),
+                eq(testUserRequest.getLastName()),
+                eq(testUserRequest.getEmail()),
+                eq(testUserRequest.getContactNumber()));
     }
 
     @Test
@@ -216,8 +224,6 @@ class UserServiceTest {
         when(userRepo.isUserExists(anyString())).thenReturn(false);
 
         // Act & Assert
-        assertThrows(UserException.class, () -> 
-            userService.deleteUser("nonexistent")
-        );
+        assertThrows(UserException.class, () -> userService.deleteUser("nonexistent"));
     }
 }

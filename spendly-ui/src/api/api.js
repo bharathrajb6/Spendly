@@ -166,7 +166,7 @@ export const transactionAPI = {
     },
 
     getByMonth: async (month, year, page = 0, size = 10) => {
-        return apiRequest(`/api/v1/transaction/month?month=${month}&year=${year}&page=${page}&size=${size}`);
+        return apiRequest(`/api/v1/transaction/filter/month?month=${month}&year=${year}&page=${page}&size=${size}`);
     },
 
     getMonthlyTotal: async (month, year) => {
@@ -250,6 +250,13 @@ export const budgetAPI = {
         });
     },
 
+    update: async (budgetId, limitAmount) => {
+        return apiRequest(`/api/v1/budget/${budgetId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ limitAmount }),
+        });
+    },
+
     getRecommendations: async () => {
         const username = getUsername();
         return apiRequest(`/api/v1/budget/recommendations/${username}`);
@@ -263,6 +270,45 @@ export const reportAPI = {
     },
 };
 
+// Admin API
+export const adminAPI = {
+    // Check if current user is admin
+    getRole: async () => {
+        return apiRequest('/api/v1/admin/role');
+    },
+
+    // Get all users (admin only)
+    getAllUsers: async () => {
+        return apiRequest('/api/v1/admin/users');
+    },
+
+    // Get admin dashboard statistics
+    getStats: async () => {
+        return apiRequest('/api/v1/admin/stats');
+    },
+
+    // Toggle user active status
+    toggleUserActive: async (username) => {
+        return apiRequest(`/api/v1/admin/users/${username}/toggle-active`, {
+            method: 'PUT',
+        });
+    },
+
+    // Make user an admin
+    makeAdmin: async (username) => {
+        return apiRequest(`/api/v1/admin/users/${username}/make-admin`, {
+            method: 'PUT',
+        });
+    },
+
+    // Remove admin role from user
+    removeAdmin: async (username) => {
+        return apiRequest(`/api/v1/admin/users/${username}/remove-admin`, {
+            method: 'PUT',
+        });
+    },
+};
+
 export default {
     auth: authAPI,
     user: userAPI,
@@ -271,4 +317,5 @@ export default {
     goal: goalAPI,
     budget: budgetAPI,
     report: reportAPI,
+    admin: adminAPI,
 };

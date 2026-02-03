@@ -60,21 +60,31 @@ cd Spendly
 ### 2. Set Up Environment Variables
 Create `.env` files in each service directory with the required environment variables.
 
-### 3. Start Dependencies
+### 3. Run with Docker Compose (Recommended)
+This is the easiest way to run the entire application (Databases + Backend + Frontend).
+
 ```bash
-docker-compose up -d
+# Build and start all services
+docker-compose up -d --build
+```
+The following services will be available:
+- **Spendly UI**: [http://localhost:5173](http://localhost:5173)
+- **API Gateway**: [http://localhost:8080](http://localhost:8080)
+- **Swagger UI**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
+- **Zipkin/Tracing**: (If enabled)
+
+To stop the services:
+```bash
+docker-compose down
 ```
 
-### 4. Build and Run Services
-```bash
-mvn clean install
-```
-
-### 5. Start Services
-Run each service in the following order:
-1. Eureka Server (if applicable)
-2. API Gateway
-3. Other microservices
+### 4. Manual Setup (Alternative)
+If you prefer to run services manually using Maven:
+1. Start Infrastructure:
+   ```bash
+   docker-compose up -d mysql kafka zookeeper
+   ```
+2. Build and Run Services:
 
 ## 📚 API Documentation
 

@@ -11,11 +11,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.Optional;
 
 import static com.example.user_service.util.UserDataValidation.validateUserRequest;
+import static com.example.user_service.util.UserDataValidation.validateUserUpdateRequest;
 import static com.example.user_service.util.UserUtility.createUserObject;
 import static com.example.user_service.util.UserUtility.toUserResponse;
 
@@ -27,15 +28,17 @@ public class UserService {
     private final UserRepo userRepo;
     private final PasswordEncoder passwordEncoder;
     private final RedisService redisService;
-    private final RestTemplate restTemplate;
+    private final WebClient.Builder webClientBuilder;
 
     @Value("${services.transaction.base-url:http://localhost:8082/api/v1}")
     private String transactionServiceBaseUrl;
 
     /**
-     * Validates user credentials by checking the username and matching the provided password.
+     * Validates user credentials by checking the username and matching the provided
+     * password.
      *
-     * @param authRequest The authentication request containing username and password.
+     * @param authRequest The authentication request containing username and
+     *                    password.
      * @return True if credentials are valid, false otherwise.
      * @throws UserException if the username is not found.
      */
@@ -44,7 +47,8 @@ public class UserService {
         User user = redisService.getData(authRequest.getUsername(), User.class);
 
         if (user == null) {
-            user = userRepo.findByUsername(authRequest.getUsername()).orElseThrow(() -> new UserException("Username not found"));
+            user = userRepo.findByUsername(authRequest.getUsername())
+                    .orElseThrow(() -> new UserException("Username not found"));
             redisService.setData(authRequest.getUsername(), user, 3600L);
         }
 
@@ -55,11 +59,13 @@ public class UserService {
 
     /**
      * Registers a new user in the system.
-     * Validates user data, checks for existing usernames, hashes the password, and saves the user.
+     * Validates user data, checks for existing usernames, hashes the password, and
+     * saves the user.
      *
      * @param user The user registration request containing user details.
      * @return True if the user is successfully registered.
-     * @throws UserException if user data is incorrect, username already exists, or unable to save user details.
+     * @throws UserException if user data is incorrect, username already exists, or
+     *                       unable to save user details.
      */
     public Boolean registerUser(UserRequest user) {
         log.info("Registering new user with username: {}", user.getUsername());
@@ -90,10 +96,19 @@ public class UserService {
     private void initializeDefaultBudgets(String username) {
         String url = String.format("%s/budget/default/%s", transactionServiceBaseUrl, username);
         try {
-            restTemplate.postForEntity(url, null, Void.class);
-            log.info("Default budgets initialized for user {}", username);
+            webClientBuilder.build()
+                    .post()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .doOnSuccess(v -> log.info("Default budgets initialized for user {}", username))
+                    .doOnError(e -> log.warn(
+                            "Unable to initialize budgets for user {}. Continuing without blocking registration.",
+                            username, e))
+                    .subscribe();
         } catch (Exception exception) {
-            log.warn("Unable to initialize budgets for user {}. Continuing without blocking registration.", username, exception);
+            log.warn("Unable to initialize budgets for user {}. Continuing without blocking registration.", username,
+                    exception);
         }
     }
 
@@ -110,7 +125,8 @@ public class UserService {
         User user = redisService.getData(username, User.class);
 
         if (user == null) {
-            user = userRepo.findByUsername(username).orElseThrow(() -> new UserException("User not found with this username"));
+            user = userRepo.findByUsername(username)
+                    .orElseThrow(() -> new UserException("User not found with this username"));
         }
 
         UserResponse response = toUserResponse(user);
@@ -119,22 +135,36 @@ public class UserService {
     }
 
     /**
-     * Updates user details (firstName, lastName, email, contactNumber) for the given username.
+     * Updates user details (firstName, lastName, email, contactNumber) for the
+     * given username.
      *
-     * @param userRequest The user request containing the username and updated details.
+     * @param userRequest The user request containing the username and updated
+     *                    details.
      * @return A UserResponse object with the updated user details.
-     * @throws UserException if user data is incorrect, unable to update, or user not found.
+     * @throws UserException if user data is incorrect, unable to update, or user
+     *                       not found.
      */
     public UserResponse updateUserDetails(UserRequest userRequest) {
         log.info("Updating user details for username: {}", userRequest.getUsername());
-        if (!validateUserRequest(userRequest)) {
+        if (!validateUserUpdateRequest(userRequest)) {
             log.error("User data validation failed for user: {}", userRequest.getUsername());
             throw new UserException("User Data's are not correct");
         }
         Optional<User> userOpt = userRepo.findByUsername(userRequest.getUsername());
         if (userOpt.isPresent()) {
+            User existingUser = userOpt.get();
+            String firstName = userRequest.getFirstName() != null ? userRequest.getFirstName()
+                    : existingUser.getFirstName();
+            String lastName = userRequest.getLastName() != null ? userRequest.getLastName()
+                    : existingUser.getLastName();
+            String email = userRequest.getEmail() != null ? userRequest.getEmail() : existingUser.getEmail();
+            String contactNumber = (userRequest.getContactNumber() != null && !userRequest.getContactNumber().isEmpty())
+                    ? userRequest.getContactNumber()
+                    : existingUser.getContactNumber();
+
             try {
-                userRepo.updateUserDetailsByUsername(userRequest.getUsername(), userRequest.getFirstName(), userRequest.getLastName(), userRequest.getEmail(), userRequest.getContactNumber());
+                userRepo.updateUserDetailsByUsername(userRequest.getUsername(), firstName, lastName, email,
+                        contactNumber);
                 redisService.deleteData(userRequest.getUsername());
                 log.info("User details updated successfully for username: {}", userRequest.getUsername());
             } catch (Exception exception) {
@@ -171,7 +201,6 @@ public class UserService {
         log.warn("User not found with username: {}", username);
         throw new UserException("User not found with this username");
     }
-
 
     public void deleteUser(String username) {
 

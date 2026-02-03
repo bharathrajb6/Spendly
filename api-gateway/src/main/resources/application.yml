@@ -19,21 +19,23 @@ spring:
     allow-bean-definition-overriding: true
   cloud:
     gateway:
-      server:
-        webflux:
-          routes:
-            - id: user-service
-              uri: http://localhost:8081
-              predicates:
-                - Path=/api/v1/users/**
-            - id: transaction-service
-              uri: http://localhost:8082
-              predicates:
-                - Path=/api/v1/transaction/**,/api/v1/savings/**,/api/v1/analytics/**
-            - id: goal-service
-              uri: http://localhost:8083
-              predicates:
-                - Path=/api/v1/goal/**,/api/v1/goals/**
+      routes:
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/users/**
+        - id: admin-service
+          uri: ${USER_SERVICE_URL:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/admin/**
+        - id: transaction-service
+          uri: ${TRANSACTION_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/transaction/**,/api/v1/savings/**,/api/v1/analytics/**,/api/v1/budget/**
+        - id: goal-service
+          uri: ${GOAL_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/goal/**,/api/v1/goals/**
 
 logging:
   file:

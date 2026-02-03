@@ -38,13 +38,18 @@ export default function Reports() {
         }
     };
 
+    // Compute income vs expense from real data
+    const totalIncome = summary?.totalIncome ?? 0;
+    const totalExpense = summary?.totalExpense ?? 0;
+
     const handleExport = async (type) => {
         setExporting(true);
         try {
-            const endDate = new Date().toISOString().split('T')[0];
-            const startDate = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            await reportAPI.generate(type, startDate, endDate);
-            alert(`${type.toUpperCase()} export initiated. Check your email for the download link.`);
+            if (type === 'csv') {
+                exportToCSV();
+            } else if (type === 'pdf') {
+                exportToPDF();
+            }
         } catch (error) {
             console.error('Export failed:', error);
             alert('Export failed. Please try again.');
@@ -53,9 +58,143 @@ export default function Reports() {
         }
     };
 
-    // Compute income vs expense from real data
-    const totalIncome = summary?.totalIncome ?? 0;
-    const totalExpense = summary?.totalExpense ?? 0;
+    const exportToCSV = () => {
+        if (!transactions || transactions.length === 0) {
+            alert('No transactions to export');
+            return;
+        }
+
+        // CSV headers
+        const headers = ['Date', 'Description', 'Category', 'Type', 'Amount'];
+
+        // CSV rows
+        const rows = transactions.map(tx => [
+            tx.transactionDate ? new Date(tx.transactionDate).toLocaleDateString('en-IN') : 'N/A',
+            tx.description || 'N/A',
+            tx.category || 'N/A',
+            tx.transactionType || tx.type || 'N/A',
+            tx.amount || 0
+        ]);
+
+        // Add summary row
+        rows.push([]);
+        rows.push(['Summary']);
+        rows.push(['Total Income', '', '', '', totalIncome]);
+        rows.push(['Total Expense', '', '', '', totalExpense]);
+        rows.push(['Net Balance', '', '', '', totalIncome - totalExpense]);
+
+        // Convert to CSV string
+        const csvContent = [headers, ...rows]
+            .map(row => row.map(cell => `"${cell}"`).join(','))
+            .join('\n');
+
+        // Download
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `Spendly_Report_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(link.href);
+    };
+
+    const exportToPDF = () => {
+        if (!transactions || transactions.length === 0) {
+            alert('No transactions to export');
+            return;
+        }
+
+        // Create a printable HTML document
+        const printWindow = window.open('', '_blank');
+
+        const transactionRows = transactions.map(tx => `
+            <tr>
+                <td>${tx.transactionDate ? new Date(tx.transactionDate).toLocaleDateString('en-IN') : 'N/A'}</td>
+                <td>${tx.description || 'N/A'}</td>
+                <td>${tx.category || 'N/A'}</td>
+                <td style="color: ${(tx.transactionType || tx.type) === 'INCOME' ? '#10b981' : '#ef4444'}">
+                    ${tx.transactionType || tx.type || 'N/A'}
+                </td>
+                <td style="text-align: right; font-weight: 500;">₹${(tx.amount || 0).toLocaleString()}</td>
+            </tr>
+        `).join('');
+
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Spendly Financial Report</title>
+                <style>
+                    * { margin: 0; padding: 0; box-sizing: border-box; }
+                    body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1a1a2e; }
+                    .header { text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #6366f1; }
+                    .header h1 { color: #6366f1; font-size: 28px; margin-bottom: 5px; }
+                    .header p { color: #666; font-size: 14px; }
+                    .summary { display: flex; justify-content: space-around; margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; }
+                    .summary-item { text-align: center; }
+                    .summary-item .label { font-size: 12px; color: #666; text-transform: uppercase; }
+                    .summary-item .value { font-size: 24px; font-weight: 700; margin-top: 5px; }
+                    .summary-item .income { color: #10b981; }
+                    .summary-item .expense { color: #ef4444; }
+                    .summary-item .balance { color: #6366f1; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th { background: #6366f1; color: white; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
+                    td { padding: 10px 12px; border-bottom: 1px solid #eee; font-size: 13px; }
+                    tr:hover { background: #f8f9fa; }
+                    .footer { margin-top: 40px; text-align: center; font-size: 12px; color: #999; }
+                    @media print { body { padding: 20px; } }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Spendly Financial Report</h1>
+                    <p>Generated on ${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                </div>
+                
+                <div class="summary">
+                    <div class="summary-item">
+                        <div class="label">Total Income</div>
+                        <div class="value income">₹${totalIncome.toLocaleString()}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Total Expense</div>
+                        <div class="value expense">₹${totalExpense.toLocaleString()}</div>
+                    </div>
+                    <div class="summary-item">
+                        <div class="label">Net Balance</div>
+                        <div class="value balance">₹${(totalIncome - totalExpense).toLocaleString()}</div>
+                    </div>
+                </div>
+
+                <h3 style="margin-bottom: 15px; color: #333;">Transaction Details</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Description</th>
+                            <th>Category</th>
+                            <th>Type</th>
+                            <th style="text-align: right;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${transactionRows}
+                    </tbody>
+                </table>
+
+                <div class="footer">
+                    <p>This report was generated by Spendly - Your Personal Finance Manager</p>
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); }
+                </script>
+            </body>
+            </html>
+        `;
+
+        printWindow.document.write(htmlContent);
+        printWindow.document.close();
+    };
 
     const incomeExpenseData = {
         labels: ['Total'],
@@ -86,7 +225,7 @@ export default function Reports() {
                 .reduce((sum, tx) => sum + (tx.amount || 0), 0);
         });
 
-        const labels = categories.map((cat, i) => `${cat}: $${spending[i].toLocaleString()}`);
+        const labels = categories.map((cat, i) => `${cat}: ₹${spending[i].toLocaleString()}`);
 
         return {
             labels,
@@ -218,7 +357,7 @@ export default function Reports() {
                     <div className="card-header">
                         <h3 className="card-title">Income vs Expense</h3>
                         <span className="text-sm text-secondary">
-                            Balance: ${(totalIncome - totalExpense).toLocaleString()}
+                            Balance: ₹{(totalIncome - totalExpense).toLocaleString()}
                         </span>
                     </div>
                     <div className="chart-container" style={{ height: '300px' }}>
