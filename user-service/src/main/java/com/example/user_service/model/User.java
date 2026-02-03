@@ -37,4 +37,10 @@ public class User {
 
     @Column(name = "created_at")
     private Timestamp createdAt;
+
+    @Column(name = "role", nullable = false)
+    private String role = "USER";
+
+    @Column(name = "active", nullable = false)
+    private Boolean active = true;
 }

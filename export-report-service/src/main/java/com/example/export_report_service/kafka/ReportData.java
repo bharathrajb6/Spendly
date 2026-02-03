@@ -1,7 +1,5 @@
 package com.example.export_report_service.kafka;
 
-
-import com.example.export_report_service.kafka.TransactionResponse;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

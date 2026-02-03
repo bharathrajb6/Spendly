@@ -18,6 +18,11 @@ import java.util.Map;
 @Slf4j
 public class KafkaConsumerConfig {
 
+    /**
+     * Creates a ConsumerFactory for String keys and String values.
+     * 
+     * @return the ConsumerFactory
+     */
     @Bean
     public ConsumerFactory<String, String> consumerFactory() {
         log.info("Initializing Kafka ConsumerFactory for notification-service");
@@ -30,6 +35,12 @@ public class KafkaConsumerConfig {
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
+    /**
+     * Creates a ConcurrentKafkaListenerContainerFactory for String keys and String
+     * values.
+     * 
+     * @return the ConcurrentKafkaListenerContainerFactory
+     */
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
         log.info("Initializing Kafka listener container factory");

@@ -25,6 +25,12 @@ public class FinancialHealthService {
     @Value("${services.goal.base-url:http://localhost:8083/api/v1}")
     private String goalServiceBaseUrl;
 
+    /**
+     * Calculates the financial health score for the given user.
+     * 
+     * @param userId The ID of the user.
+     * @return The FinancialHealthResponse object.
+     */
     @Transactional(readOnly = true)
     public FinancialHealthResponse calculateHealthScore(String userId) {
         UserTransactionSummary summary = transactionAnalyticsService.buildUserTransactionSummary(userId);
@@ -45,12 +51,15 @@ public class FinancialHealthService {
 
         String feedback = buildFeedbackMessage(score, savingsRatio, goalCompletionRate);
 
-        return FinancialHealthResponse.builder().score(score).savingsRatio(roundTwoDecimals(savingsRatio)).expenseStability(roundTwoDecimals(1 - expenseStabilityNormalized)).goalCompletionRate(roundTwoDecimals(goalCompletionRate)).feedback(feedback).build();
+        return FinancialHealthResponse.builder().score(score).savingsRatio(roundTwoDecimals(savingsRatio))
+                .expenseStability(roundTwoDecimals(1 - expenseStabilityNormalized))
+                .goalCompletionRate(roundTwoDecimals(goalCompletionRate)).feedback(feedback).build();
     }
 
     private double fetchGoalCompletionRate(String userId) {
         try {
-            GoalSummaryResponse summaryResponse = restTemplate.getForObject(String.format("%s/goals/%s/summary", goalServiceBaseUrl, userId), GoalSummaryResponse.class);
+            GoalSummaryResponse summaryResponse = restTemplate.getForObject(
+                    String.format("%s/goals/%s/summary", goalServiceBaseUrl, userId), GoalSummaryResponse.class);
             if (summaryResponse == null || summaryResponse.getTotalGoals() == 0) {
                 return 0;
             }
@@ -72,15 +81,21 @@ public class FinancialHealthService {
 
     private String buildFeedbackMessage(double score, double savingsRatio, double goalCompletionRate) {
         if (score >= 80) {
-            return String.format("Your financial health is %.0f — excellent! Maintain your habits to keep momentum.", score);
+            return String.format("Your financial health is %.0f — excellent! Maintain your habits to keep momentum.",
+                    score);
         }
         if (score >= 60) {
-            return String.format("Your financial health is %.0f — good! Try saving %.0f%% more to improve.", score, Math.max(10, (1 - savingsRatio) * 100));
+            return String.format("Your financial health is %.0f — good! Try saving %.0f%% more to improve.", score,
+                    Math.max(10, (1 - savingsRatio) * 100));
         }
         if (score >= 40) {
-            return String.format("Your financial health is %.0f — fair. Focus on stabilizing monthly expenses; completion rate at %.0f%% can improve.", score, goalCompletionRate * 100);
+            return String.format(
+                    "Your financial health is %.0f — fair. Focus on stabilizing monthly expenses; completion rate at %.0f%% can improve.",
+                    score, goalCompletionRate * 100);
         }
-        return String.format("Your financial health is %.0f — needs attention. Increase savings and revisit your goals to get back on track.", score);
+        return String.format(
+                "Your financial health is %.0f — needs attention. Increase savings and revisit your goals to get back on track.",
+                score);
     }
 
     private double clamp(double value) {

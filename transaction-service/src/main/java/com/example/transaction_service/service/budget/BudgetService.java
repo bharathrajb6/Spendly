@@ -27,18 +27,26 @@ import java.util.stream.Collectors;
 @Slf4j
 public class BudgetService {
 
-    private static final Map<String, Double> DEFAULT_CATEGORY_LIMITS = new LinkedHashMap<>() {{
-        put("HOUSING", 1500.0);
-        put("FOOD", 600.0);
-        put("TRANSPORT", 300.0);
-        put("ENTERTAINMENT", 250.0);
-        put("UTILITIES", 200.0);
-    }};
+    private static final Map<String, Double> DEFAULT_CATEGORY_LIMITS = new LinkedHashMap<>() {
+        {
+            put("HOUSING", 1500.0);
+            put("FOOD", 600.0);
+            put("TRANSPORT", 300.0);
+            put("ENTERTAINMENT", 250.0);
+            put("UTILITIES", 200.0);
+        }
+    };
 
     private final BudgetRepo budgetRepo;
     private final TransactionAnalyticsService transactionAnalyticsService;
     private final BudgetNotificationService budgetNotificationService;
 
+    /**
+     * Creates default budgets for the given user.
+     * 
+     * @param userId The ID of the user.
+     * @return A list of BudgetResponse objects.
+     */
     @Transactional
     public List<BudgetResponse> createDefaultBudgets(String userId) {
         YearMonth current = YearMonth.now();
@@ -50,33 +58,87 @@ public class BudgetService {
         return responses;
     }
 
+    /**
+     * Handles transaction events by recalculating budgets for the affected
+     * categories.
+     * 
+     * @param currentState  The current state of the transaction.
+     * @param previousState The previous state of the transaction.
+     */
     @Transactional
     public void handleTransactionEvent(Transaction currentState, Transaction previousState) {
-        if (currentState != null && currentState.getUsername() != null && "EXPENSE".equalsIgnoreCase(currentState.getTransactionType())) {
-            recalculateBudgetForCategory(currentState.getUsername(), normalizeCategory(currentState.getCategory()), resolvePeriod(currentState.getTransactionDate()));
+        if (currentState != null && currentState.getUsername() != null
+                && "EXPENSE".equalsIgnoreCase(currentState.getTransactionType())) {
+            recalculateBudgetForCategory(currentState.getUsername(), normalizeCategory(currentState.getCategory()),
+                    resolvePeriod(currentState.getTransactionDate()));
         }
 
-        if (previousState != null && previousState.getUsername() != null && "EXPENSE".equalsIgnoreCase(previousState.getTransactionType())) {
-            recalculateBudgetForCategory(previousState.getUsername(), normalizeCategory(previousState.getCategory()), resolvePeriod(previousState.getTransactionDate()));
+        if (previousState != null && previousState.getUsername() != null
+                && "EXPENSE".equalsIgnoreCase(previousState.getTransactionType())) {
+            recalculateBudgetForCategory(previousState.getUsername(), normalizeCategory(previousState.getCategory()),
+                    resolvePeriod(previousState.getTransactionDate()));
         }
     }
 
+    /**
+     * Retrieves all budgets for the given user for the specified period.
+     * 
+     * @param userId The ID of the user.
+     * @param period The period to retrieve budgets for.
+     * @return A list of BudgetResponse objects.
+     */
     @Transactional(readOnly = true)
     public List<BudgetResponse> getBudgetsForUser(String userId, YearMonth period) {
         YearMonth target = period != null ? period : YearMonth.now();
-        return budgetRepo.findByUserIdAndMonthAndYear(userId, target.getMonthValue(), target.getYear()).stream().map(this::toResponse).collect(Collectors.toList());
+        return budgetRepo.findByUserIdAndMonthAndYear(userId, target.getMonthValue(), target.getYear()).stream()
+                .map(this::toResponse).collect(Collectors.toList());
     }
 
+    /**
+     * Updates the budget for the given user and category.
+     * 
+     * @param budgetId       The ID of the budget to update.
+     * @param newLimitAmount The new limit amount for the budget.
+     * @return The updated BudgetResponse.
+     */
+    @Transactional
+    public BudgetResponse updateBudget(String budgetId, Double newLimitAmount) {
+        if (budgetId == null) {
+            throw new IllegalArgumentException("Budget ID cannot be null");
+        }
+        Budget budget = budgetRepo.findById(budgetId)
+                .orElseThrow(() -> new RuntimeException("Budget not found with id: " + budgetId));
+
+        if (newLimitAmount != null && newLimitAmount > 0) {
+            budget.setLimitAmount(roundTwoDecimals(newLimitAmount));
+            budget.setUpdatedAt(LocalDateTime.now());
+            budgetRepo.save(budget);
+            log.info("Updated budget {} for user {} category {} to new limit {}",
+                    budgetId, budget.getUserId(), budget.getCategory(), newLimitAmount);
+        }
+
+        return toResponse(budget);
+    }
+
+    /**
+     * Generates budget recommendations for the given user based on their spending
+     * patterns.
+     * 
+     * @param userId The ID of the user.
+     * @return A list of BudgetRecommendationResponse objects.
+     */
     @Transactional
     public List<BudgetRecommendationResponse> generateRecommendations(String userId) {
-        Map<String, Double> averageByCategory = transactionAnalyticsService.calculateAverageExpenseByCategory(userId, 3);
+        Map<String, Double> averageByCategory = transactionAnalyticsService.calculateAverageExpenseByCategory(userId,
+                3);
         YearMonth nextMonth = YearMonth.now().plusMonths(1);
 
         List<BudgetRecommendationResponse> recommendations = new ArrayList<>();
         for (Map.Entry<String, Double> entry : averageByCategory.entrySet()) {
             String category = entry.getKey();
             double averageSpend = entry.getValue();
-            Budget currentBudget = ensureBudget(userId, category, YearMonth.now(), DEFAULT_CATEGORY_LIMITS.getOrDefault(category, 300.0));
+            Budget currentBudget = ensureBudget(userId, category, YearMonth.now(),
+                    DEFAULT_CATEGORY_LIMITS.getOrDefault(category, 300.0));
             double currentLimit = currentBudget.getLimitAmount();
             double suggestedLimit = currentLimit;
             String note = "No adjustment required";
@@ -96,11 +158,21 @@ public class BudgetService {
             upcomingBudget.setUpdatedAt(LocalDateTime.now());
             budgetRepo.save(upcomingBudget);
 
-            recommendations.add(BudgetRecommendationResponse.builder().category(category).currentLimit(currentLimit).suggestedLimit(suggestedLimit).month(nextMonth.getMonthValue()).year(nextMonth.getYear()).recommendationNote(note).build());
+            recommendations.add(BudgetRecommendationResponse.builder().category(category).currentLimit(currentLimit)
+                    .suggestedLimit(suggestedLimit).month(nextMonth.getMonthValue()).year(nextMonth.getYear())
+                    .recommendationNote(note).build());
         }
         return recommendations;
     }
 
+    /**
+     * Recalculates the budget for the given user and category for the specified
+     * period.
+     * 
+     * @param userId   The ID of the user.
+     * @param category The category of the budget.
+     * @param period   The period to recalculate the budget for.
+     */
     @Transactional
     public void recalculateBudgetForCategory(String userId, String category, YearMonth period) {
         if (userId == null || category == null) {
@@ -114,20 +186,52 @@ public class BudgetService {
         budgetRepo.save(budget);
 
         if (status == BudgetStatus.OVERSPENT) {
-            log.info("User {} overspent category {} for {}. Spent {}, limit {}", userId, category, period, currentSpend, budget.getLimitAmount());
+            log.info("User {} overspent category {} for {}. Spent {}, limit {}", userId, category, period, currentSpend,
+                    budget.getLimitAmount());
             budgetNotificationService.notifyOverspending(userId, category, currentSpend, budget.getLimitAmount());
         }
     }
 
+    /**
+     * Ensures that a budget exists for the given user and category for the
+     * specified period.
+     * 
+     * @param userId       The ID of the user.
+     * @param category     The category of the budget.
+     * @param period       The period to ensure the budget for.
+     * @param defaultLimit The default limit amount for the budget.
+     * @return The Budget object.
+     */
     private Budget ensureBudget(String userId, String category, YearMonth period, double defaultLimit) {
-        return budgetRepo.findByUserIdAndCategoryAndMonthAndYear(userId, category, period.getMonthValue(), period.getYear()).orElseGet(() -> budgetRepo.findTopByUserIdAndCategoryOrderByYearDescMonthDesc(userId, category).map(existing -> buildBudget(userId, category, period, existing.getLimitAmount())).orElseGet(() -> buildBudget(userId, category, period, defaultLimit)));
+        return budgetRepo
+                .findByUserIdAndCategoryAndMonthAndYear(userId, category, period.getMonthValue(), period.getYear())
+                .orElseGet(() -> budgetRepo.findTopByUserIdAndCategoryOrderByYearDescMonthDesc(userId, category)
+                        .map(existing -> buildBudget(userId, category, period, existing.getLimitAmount()))
+                        .orElseGet(() -> buildBudget(userId, category, period, defaultLimit)));
     }
 
+    /**
+     * Builds a new budget object.
+     * 
+     * @param userId   The ID of the user.
+     * @param category The category of the budget.
+     * @param period   The period of the budget.
+     * @param limit    The limit amount for the budget.
+     * @return The Budget object.
+     */
     private Budget buildBudget(String userId, String category, YearMonth period, double limit) {
-        Budget budget = Budget.builder().budgetId(UUID.randomUUID().toString()).userId(userId).category(category).limitAmount(roundTwoDecimals(limit)).month(period.getMonthValue()).year(period.getYear()).status(BudgetStatus.ON_TRACK).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
+        Budget budget = Budget.builder().budgetId(UUID.randomUUID().toString()).userId(userId).category(category)
+                .limitAmount(roundTwoDecimals(limit)).month(period.getMonthValue()).year(period.getYear())
+                .status(BudgetStatus.ON_TRACK).createdAt(LocalDateTime.now()).updatedAt(LocalDateTime.now()).build();
         return budgetRepo.save(budget);
     }
 
+    /**
+     * Resolves the period from a timestamp.
+     * 
+     * @param timestamp The timestamp to resolve the period from.
+     * @return The resolved period.
+     */
     private YearMonth resolvePeriod(Timestamp timestamp) {
         if (timestamp == null) {
             return YearMonth.now();
@@ -136,14 +240,35 @@ public class BudgetService {
         return YearMonth.of(dateTime.getYear(), dateTime.getMonth());
     }
 
+    /**
+     * Normalizes the category.
+     * 
+     * @param category The category to normalize.
+     * @return The normalized category.
+     */
     private String normalizeCategory(String category) {
         return category == null ? "UNCATEGORIZED" : category.toUpperCase();
     }
 
+    /**
+     * Converts a Budget object to a BudgetResponse object.
+     * 
+     * @param budget The Budget object to convert.
+     * @return The BudgetResponse object.
+     */
     private BudgetResponse toResponse(Budget budget) {
-        return BudgetResponse.builder().budgetId(budget.getBudgetId()).userId(budget.getUserId()).category(budget.getCategory()).limitAmount(budget.getLimitAmount()).month(budget.getMonth()).year(budget.getYear()).status(budget.getStatus()).recommendedLimitAmount(budget.getRecommendedLimitAmount()).build();
+        return BudgetResponse.builder().budgetId(budget.getBudgetId()).userId(budget.getUserId())
+                .category(budget.getCategory()).limitAmount(budget.getLimitAmount()).month(budget.getMonth())
+                .year(budget.getYear()).status(budget.getStatus())
+                .recommendedLimitAmount(budget.getRecommendedLimitAmount()).build();
     }
 
+    /**
+     * Rounds a double value to two decimal places.
+     * 
+     * @param value The double value to round.
+     * @return The rounded double value.
+     */
     private double roundTwoDecimals(double value) {
         return Math.round(value * 100.0) / 100.0;
     }

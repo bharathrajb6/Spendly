@@ -54,12 +54,21 @@ export default function Settings() {
         setSaving(true);
         setMessage('');
         try {
+            // Update basic profile details
             await userAPI.updateDetails({
                 username: profile.username,
                 firstName: profile.firstName,
                 lastName: profile.lastName,
                 email: profile.email,
             });
+
+            // Update password if it has been changed from the default dots
+            if (profile.password && profile.password !== '••••••••') {
+                await userAPI.updatePassword(profile.password);
+                // Reset to dots after successful update
+                setProfile(prev => ({ ...prev, password: '••••••••' }));
+            }
+
             setMessage('Profile updated successfully!');
         } catch (error) {
             console.error('Failed to update profile:', error);

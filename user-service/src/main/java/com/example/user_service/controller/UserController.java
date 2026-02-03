@@ -22,9 +22,11 @@ public class UserController {
     private final UserService userService;
 
     /**
-     * Validates user credentials by checking the username and matching the provided password.
+     * Validates user credentials by checking the username and matching the provided
+     * password.
      *
-     * @param authRequest The authentication request containing username and password.
+     * @param authRequest The authentication request containing username and
+     *                    password.
      * @return True if credentials are valid, false otherwise.
      * @throws UserException if the username is not found.
      */
@@ -35,11 +37,13 @@ public class UserController {
 
     /**
      * Registers a new user in the system.
-     * Validates user data, checks for existing usernames, hashes the password, and saves the user.
+     * Validates user data, checks for existing usernames, hashes the password, and
+     * saves the user.
      *
      * @param userRequest The user registration request containing user details.
      * @return True if the user is successfully registered.
-     * @throws UserException if user data is incorrect, username already exists, or unable to save user details.
+     * @throws UserException if user data is incorrect, username already exists, or
+     *                       unable to save user details.
      */
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public Boolean registerUser(@RequestBody UserRequest userRequest) {
@@ -58,21 +62,24 @@ public class UserController {
      */
     @RequestMapping(value = "/getUserDetails", method = RequestMethod.GET)
     public UserResponse getUserDetails(@RequestHeader(HttpHeaders.AUTHORIZATION) String authHeader,
-                                       @RequestHeader(value = "X-Username", required = false) String username) {
+            @RequestHeader(value = "X-Username", required = false) String username) {
         return userService.getUserDetails(username);
     }
 
     /**
-     * Updates user details (firstName, lastName, email, contactNumber) for the given username.
+     * Updates user details (firstName, lastName, email, contactNumber) for the
+     * given username.
      *
      * @param username    The username of the user to update.
-     * @param userRequest The user request containing the username and updated details.
+     * @param userRequest The user request containing the username and updated
+     *                    details.
      * @return A UserResponse object with the updated user details.
-     * @throws UserException if user data is incorrect, unable to update, or user not found.
+     * @throws UserException if user data is incorrect, unable to update, or user
+     *                       not found.
      */
     @RequestMapping(value = "/updateUserDetails", method = RequestMethod.PUT)
     public UserResponse updateUserDetails(@RequestHeader(value = "X-Username", required = false) String username,
-                                          @RequestBody UserRequest userRequest) {
+            @RequestBody UserRequest userRequest) {
         if (!Objects.equals(username, userRequest.getUsername())) {
             return null;
         }
@@ -83,27 +90,38 @@ public class UserController {
      * Updates the password for the given username.
      *
      * @param username    The username of the user to update.
-     * @param authRequest The authentication request containing the username and new password.
+     * @param authRequest The authentication request containing the username and new
+     *                    password.
      * @return True if the password was successfully updated.
      * @throws UserException if unable to update the password or user not found.
      */
     @RequestMapping(value = "/updatePassword", method = RequestMethod.PUT)
     public Boolean updatePassword(@RequestHeader(value = "X-Username", required = false) String username,
-                                  @RequestBody AuthRequest authRequest) {
+            @RequestBody AuthRequest authRequest) {
         if (!Objects.equals(username, authRequest.getUsername())) {
             return null;
         }
         return userService.updatePassword(username, authRequest.getPassword());
     }
 
-
+    /**
+     * Deletes all data associated with the current user.
+     *
+     * @param username the username of the user requesting data deletion
+     * @return a ResponseEntity with status 202 (Accepted) upon successful deletion
+     */
     @RequestMapping(value = "/delete", method = RequestMethod.DELETE)
     public ResponseEntity<?> deleteMyData(@RequestHeader(value = "X-Username", required = false) String username) {
         userService.deleteUser(username);
         return new ResponseEntity<>(HttpStatus.ACCEPTED);
     }
 
-
+    /**
+     * Retrieves the email address associated with a specific username.
+     * 
+     * @param username the username to look up
+     * @return the email address as a plain string
+     */
     @RequestMapping(value = "/{username}", method = RequestMethod.GET)
     public String getUserEmail(@PathVariable("username") String username) {
         return userService.getUserDetails(username).getEmail();

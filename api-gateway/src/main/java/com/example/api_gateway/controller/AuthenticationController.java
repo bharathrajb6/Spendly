@@ -5,6 +5,7 @@ import com.example.api_gateway.model.UserRequest;
 import com.example.api_gateway.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -30,18 +31,23 @@ public class AuthenticationController {
 
     private final RestTemplate restTemplate;
 
+    @Value("${USER_SERVICE_URL:http://localhost:8081}")
+    private String userServiceUrl;
 
     /**
      * Login endpoint to validate user credentials and generate a JWT token.
      *
-     * @param authRequest The authentication request containing username and password.
-     * @return A ResponseEntity containing a JWT token if the authentication is successful, 401 Unauthorized if not.
+     * @param authRequest The authentication request containing username and
+     *                    password.
+     * @return A ResponseEntity containing a JWT token if the authentication is
+     *         successful, 401 Unauthorized if not.
      */
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity<?> login(@RequestBody AuthRequest authRequest) {
         ResponseEntity<Boolean> validationResponse;
         try {
-            validationResponse = restTemplate.postForEntity("http://localhost:8081/api/v1/users/validate", authRequest, Boolean.class);
+            validationResponse = restTemplate.postForEntity(userServiceUrl + "/api/v1/users/validate", authRequest,
+                    Boolean.class);
         } catch (RestClientResponseException exception) {
             String responseBody = exception.getResponseBodyAsString();
             HttpStatusCode statusCode = exception.getStatusCode();
@@ -67,14 +73,16 @@ public class AuthenticationController {
      * Registers a new user to the system.
      *
      * @param userRequest The user registration request containing user details.
-     * @return A ResponseEntity containing a JSON Web Token (JWT) representing the user
-     * if the registration is successful, 401 Unauthorized if not.
+     * @return A ResponseEntity containing a JSON Web Token (JWT) representing the
+     *         user
+     *         if the registration is successful, 401 Unauthorized if not.
      */
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity<?> register(@RequestBody UserRequest userRequest) {
         ResponseEntity<Boolean> validationResponse;
         try {
-            validationResponse = restTemplate.postForEntity("http://localhost:8081/api/v1/users/register", userRequest, Boolean.class);
+            validationResponse = restTemplate.postForEntity(userServiceUrl + "/api/v1/users/register", userRequest,
+                    Boolean.class);
         } catch (RestClientResponseException exception) {
             String responseBody = exception.getResponseBodyAsString();
             HttpStatusCode statusCode = exception.getStatusCode();

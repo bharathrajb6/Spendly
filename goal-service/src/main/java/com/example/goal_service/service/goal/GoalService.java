@@ -44,12 +44,18 @@ public class GoalService {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Value("${services.transaction.base-url:http://localhost:8082/api/v1}")
+    @Value("${services.transaction.baseurl:http://localhost:8082/api/v1}")
     private String transactionServiceBaseUrl;
 
     @Autowired
     private GoalNotificationService goalNotificationService;
 
+    /**
+     * Gets the goal summary for the given user.
+     * 
+     * @param username the username of the user
+     * @return the goal summary response object
+     */
     @Transactional(readOnly = true)
     public GoalSummaryResponse getGoalSummary(String username) {
         long totalGoals = goalRepo.countByUsername(username);
@@ -289,6 +295,13 @@ public class GoalService {
         }
     }
 
+    /**
+     * Recalculates the progress of all goals for the given user.
+     * 
+     * @param username     the username of the user
+     * @param totalIncome  the total income of the user
+     * @param totalExpense the total expense of the user
+     */
     @Transactional
     public void recalculateGoalProgress(String username, double totalIncome, double totalExpense) {
         Objects.requireNonNull(username, "Username cannot be null when recalculating goal progress.");
@@ -301,27 +314,49 @@ public class GoalService {
             return;
         }
 
-        double distributableBalance = Math.max(totalIncome - totalExpense, 0);
-        double totalOutstanding = activeGoals.stream()
-                .mapToDouble(goal -> Math.max(goal.getTargetAmount() - goal.getSavedAmount(), 0)).sum();
+        // Calculate total available savings (this is absolute, not incremental)
+        double totalSavings = Math.max(totalIncome - totalExpense, 0);
 
+        // Calculate total target amount across all goals
+        double totalTargetAmount = activeGoals.stream()
+                .mapToDouble(Goal::getTargetAmount).sum();
+
+        log.info("Recalculating goals for user {}: totalSavings={}, totalTarget={}",
+                username, totalSavings, totalTargetAmount);
+
+        // Distribute savings proportionally across all goals based on their target
+        // amounts
         for (Goal goal : activeGoals) {
             GoalStatus previousStatus = goal.getStatus();
-            double outstanding = Math.max(goal.getTargetAmount() - goal.getSavedAmount(), 0);
-            double allocationRatio = totalOutstanding == 0 ? 0 : outstanding / totalOutstanding;
-            double allocation = distributableBalance * allocationRatio;
-            double updatedSavedAmount = Math.min(goal.getSavedAmount() + allocation, goal.getTargetAmount());
+
+            // Calculate this goal's share of savings based on its proportion of total
+            // targets
+            double allocationRatio = totalTargetAmount == 0 ? 0 : goal.getTargetAmount() / totalTargetAmount;
+            double allocatedSavings = totalSavings * allocationRatio;
+
+            // The saved amount is capped at the target amount
+            double updatedSavedAmount = Math.min(allocatedSavings, goal.getTargetAmount());
             goal.setSavedAmount(roundToTwoDecimals(updatedSavedAmount));
+
+            // Calculate progress percentage
             double progressPercent = goal.getTargetAmount() == 0 ? 0
                     : calculatePercentage(goal.getSavedAmount(), goal.getTargetAmount());
             goal.setProgressPercent(roundToTwoDecimals(progressPercent));
+
+            // Update status if goal is achieved
             if (goal.getSavedAmount() >= goal.getTargetAmount()) {
                 goal.setStatus(GoalStatus.ACHIEVED);
                 goal.setProgressPercent(100.0);
                 if (previousStatus != GoalStatus.ACHIEVED && previousStatus != GoalStatus.COMPLETED) {
                     goalNotificationService.notifyGoalAchieved(username, goal.getGoalName(), goal.getTargetAmount());
                 }
+            } else if (previousStatus == GoalStatus.ACHIEVED) {
+                // If savings dropped and goal is no longer achieved, revert to active
+                goal.setStatus(GoalStatus.ACTIVE);
             }
+
+            log.debug("Goal {} updated: savedAmount={}, progress={}%, status={}",
+                    goal.getGoalName(), goal.getSavedAmount(), goal.getProgressPercent(), goal.getStatus());
         }
 
         goalRepo.saveAll(activeGoals);
@@ -329,6 +364,12 @@ public class GoalService {
         log.info("Recalculated progress for {} goals belonging to user {}", activeGoals.size(), username);
     }
 
+    /**
+     * Updates the progress of all goals for the given user.
+     * 
+     * @param username the username of the user
+     * @return the list of goal response objects
+     */
     public List<GoalResponse> updateGoalsProgressForUser(String username) {
         if (username == null || username.isBlank()) {
             throw new GoalException("Username cannot be empty when updating goal progress.");
@@ -352,6 +393,12 @@ public class GoalService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Rounds the given value to two decimal places.
+     * 
+     * @param value the value to round
+     * @return the rounded value
+     */
     public double roundToTwoDecimals(double value) {
         return BigDecimal.valueOf(value).setScale(2, RoundingMode.HALF_UP).doubleValue();
     }
@@ -375,7 +422,7 @@ public class GoalService {
         if (!isAnyGoalFoundForThisUser) {
             log.warn("No goal found for this user");
             ResponseEntity<Double> validationResponse;
-            String url = "http://localhost:8082/api/v1/savings/" + username;
+            String url = transactionServiceBaseUrl + "/savings/" + username;
             try {
                 validationResponse = restTemplate.getForEntity(url, Double.class);
             } catch (RestClientResponseException exception) {

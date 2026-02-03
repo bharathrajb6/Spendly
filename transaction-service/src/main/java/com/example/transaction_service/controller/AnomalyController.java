@@ -19,9 +19,17 @@ public class AnomalyController {
 
     private final AnomalyDetectionService anomalyDetectionService;
 
+    /**
+     * Gets the spending anomalies for a specific user.
+     * 
+     * @param userId  the ID of the user
+     * @param refresh whether to refresh the anomalies
+     * @return a list of anomaly responses for the user
+     */
     @Operation(summary = "Get spending anomalies for a user", description = "Calculates anomalies for the current month and returns the latest results.")
     @GetMapping("/{userId}")
-    public List<AnomalyResponse> getAnomalies(@PathVariable("userId") String userId, @RequestParam(value = "refresh", defaultValue = "true") boolean refresh) {
+    public List<AnomalyResponse> getAnomalies(@PathVariable("userId") String userId,
+            @RequestParam(value = "refresh", defaultValue = "true") boolean refresh) {
         if (refresh) {
             return anomalyDetectionService.detectAnomalies(userId);
         }

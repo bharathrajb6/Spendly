@@ -6,8 +6,10 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
 import Goals from './pages/Goals';
+import Budget from './pages/Budget';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import AdminDashboard from './pages/AdminDashboard';
 import './index.css';
 
 // Protected Route wrapper
@@ -61,8 +63,10 @@ function App() {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="goals" element={<Goals />} />
+          <Route path="budget" element={<Budget />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="admin" element={<AdminDashboard />} />
         </Route>
 
         {/* Catch all - redirect to dashboard or login */}

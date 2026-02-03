@@ -71,7 +71,7 @@ public class TransactionService {
      * @param request  The transaction request object containing the details of the
      *                 transaction.
      * @return The transaction response object containing the saved transaction's
-     * details.
+     *         details.
      * @throws TransactionException If the transaction is unable to be saved to the
      *                              database.
      */
@@ -99,7 +99,8 @@ public class TransactionService {
         String json = null;
         try {
             var summary = transactionAnalyticsService.buildUserTransactionSummary(username);
-            json = transactionUtil.generateTransactionData(transaction, savedAmount, summary, TransactionEventType.CREATED);
+            json = transactionUtil.generateTransactionData(transaction, savedAmount, summary,
+                    TransactionEventType.CREATED);
             eventProducer.sendTopic(TRANSACTION, json);
         } catch (JsonProcessingException exception) {
             throw new TransactionException(exception.getMessage());
@@ -122,7 +123,7 @@ public class TransactionService {
      *
      * @param transactionID The ID of the transaction to retrieve.
      * @return The transaction response object containing the retrieved
-     * transaction's details.
+     *         transaction's details.
      * @throws TransactionException If no transaction is found with the given ID.
      */
     public TransactionResponse getTransaction(String transactionID) {
@@ -137,7 +138,8 @@ public class TransactionService {
         // If transaction is null, then return from database
         if (transaction == null) {
             // Find the transaction by its ID
-            transaction = transactionRepo.findByTransactionID(transactionID).orElseThrow(() -> new TransactionException("Transaction not found with this ID."));
+            transaction = transactionRepo.findByTransactionID(transactionID)
+                    .orElseThrow(() -> new TransactionException("Transaction not found with this ID."));
             redisService.setData(transaction.getTransactionID(), transaction, 3600L);
         }
 
@@ -150,7 +152,7 @@ public class TransactionService {
      * @param username The username for which all transactions are being retrieved.
      * @param pageable The pageable object containing the page and size details.
      * @return A page of transaction response objects containing all transactions
-     * for the given user.
+     *         for the given user.
      * @throws TransactionException If no transactions are found for the given user.
      */
     public Page<TransactionResponse> getAllTransactionForUser(String username, Pageable pageable) {
@@ -164,7 +166,8 @@ public class TransactionService {
         List<Transaction> transactions;
         List<?> data = (List<?>) cachedData;
         if (cachedData != null && data.size() > 0) {
-            transactions = ((List<?>) cachedData).stream().map(item -> objectMapper.convertValue(item, Transaction.class)).collect(Collectors.toList());
+            transactions = ((List<?>) cachedData).stream()
+                    .map(item -> objectMapper.convertValue(item, Transaction.class)).collect(Collectors.toList());
         } else {
             transactions = transactionRepo.findTransactionByUsername(username);
             redisService.setData(username + "-transactions", transactions, 3600L);
@@ -173,7 +176,8 @@ public class TransactionService {
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), transactions.size());
 
-        List<TransactionResponse> responses = transactions.subList(start, end).stream().map(TransactionUtil::toTransactionResponse).collect(Collectors.toList());
+        List<TransactionResponse> responses = transactions.subList(start, end).stream()
+                .map(TransactionUtil::toTransactionResponse).collect(Collectors.toList());
 
         return new PageImpl<>(responses, pageable, transactions.size());
     }
@@ -185,12 +189,13 @@ public class TransactionService {
      * @param request       The transaction request object containing the updated
      *                      details of the transaction.
      * @return The transaction response object containing the updated transaction's
-     * details.
+     *         details.
      * @throws TransactionException If the transaction is unable to be updated to
      *                              the database or if no transaction is found with
      *                              the given ID.
      */
-    public TransactionResponse updateTransaction(String username, String transactionID, TransactionRequest request) throws InterruptedException {
+    public TransactionResponse updateTransaction(String username, String transactionID, TransactionRequest request)
+            throws InterruptedException {
 
         if (transactionID == null) {
             throw new TransactionException("Transaction ID should not be null");
@@ -209,10 +214,10 @@ public class TransactionService {
         // Validate the transaction request object
         validateTransaction(request);
 
-
         try {
             // Update the transaction in the database
-            transactionRepo.updateTransaction(request.getType(), request.getCategory(), request.getAmount(), request.getNotes(), request.getPaymentType(), request.isRecurring(), transactionID);
+            transactionRepo.updateTransaction(request.getType(), request.getCategory(), request.getAmount(),
+                    request.getNotes(), request.getPaymentType(), request.isRecurring(), transactionID);
             // Invalidate individual transaction cache
             redisService.deleteData(transactionID);
             // Invalidate user's transaction list cache
@@ -222,15 +227,16 @@ public class TransactionService {
             throw new TransactionException(exception.getMessage());
         }
 
-
         Transaction updatedTransaction = transactionRepo.findByTransactionID(transactionID).orElse(null);
 
-        double updatedSavings = savingsService.updateSavingsDataAfterTransactionUpdate(username, oldTransaction, updatedTransaction);
+        double updatedSavings = savingsService.updateSavingsDataAfterTransactionUpdate(username, oldTransaction,
+                updatedTransaction);
 
         String json = null;
         try {
             var summary = transactionAnalyticsService.buildUserTransactionSummary(username);
-            json = transactionUtil.generateTransactionData(updatedTransaction, updatedSavings, summary, TransactionEventType.UPDATED);
+            json = transactionUtil.generateTransactionData(updatedTransaction, updatedSavings, summary,
+                    TransactionEventType.UPDATED);
             eventProducer.sendTopic(TRANSACTION, json);
         } catch (JsonProcessingException exception) {
             throw new TransactionException(exception.getMessage());
@@ -276,11 +282,13 @@ public class TransactionService {
             throw new TransactionException(exception.getMessage());
         }
 
-        double updatedSavings = savingsService.updateSavingsAfterTransactionDelete(transaction.get().getUsername(), transaction.get());
+        double updatedSavings = savingsService.updateSavingsAfterTransactionDelete(transaction.get().getUsername(),
+                transaction.get());
         String json = null;
         try {
             var summary = transactionAnalyticsService.buildUserTransactionSummary(transaction.get().getUsername());
-            json = transactionUtil.generateTransactionData(transaction.get(), updatedSavings, summary, TransactionEventType.DELETED);
+            json = transactionUtil.generateTransactionData(transaction.get(), updatedSavings, summary,
+                    TransactionEventType.DELETED);
             eventProducer.sendTopic(TRANSACTION, json);
         } catch (JsonProcessingException exception) {
             throw new TransactionException(exception.getMessage());
@@ -299,11 +307,12 @@ public class TransactionService {
      * @param end      The end date of the range.
      * @param pageable The pageable object containing the page and size details.
      * @return A page of transaction response objects containing all transactions
-     * for the given user within the given date range.
+     *         for the given user within the given date range.
      * @throws TransactionException If the start date is after the end date, or if
      *                              no transactions are found for the given user.
      */
-    public Page<TransactionResponse> getFilteredTransaction(String username, String start, String end, Pageable pageable) {
+    public Page<TransactionResponse> getFilteredTransaction(String username, String start, String end,
+            Pageable pageable) {
 
         if (start == null || end == null) {
             throw new TransactionException("Start and end date should not be null");
@@ -342,7 +351,8 @@ public class TransactionService {
         // Filter transactions based on the given date range
         transactions.getContent().stream().filter(transaction -> {
             LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
-            return transactionDate.equals(startDate) || transactionDate.equals(endDate) || (transactionDate.isAfter(startDate) && transactionDate.isBefore(endDate));
+            return transactionDate.equals(startDate) || transactionDate.equals(endDate)
+                    || (transactionDate.isAfter(startDate) && transactionDate.isBefore(endDate));
         });
 
         return transactions.map(TransactionUtil::toTransactionResponse);
@@ -355,7 +365,7 @@ public class TransactionService {
      * @param value    The category of transactions to retrieve.
      * @param pageable The pageable object containing the page and size details.
      * @return A page of transaction response objects containing all transactions
-     * for the given user with the given category.
+     *         for the given user with the given category.
      * @throws TransactionException If the username is null, or if the category is
      *                              invalid.
      */
@@ -371,11 +381,11 @@ public class TransactionService {
 
         try {
             // Check if the category is a valid income category
-            IncomeCategory incomeCategory = IncomeCategory.valueOf(value.toUpperCase());
+            IncomeCategory.valueOf(value.toUpperCase());
         } catch (Exception exception) {
             // If not, check if it's a valid expense category
             try {
-                ExpenseCategory expenseCategory = ExpenseCategory.valueOf(value.toUpperCase());
+                ExpenseCategory.valueOf(value.toUpperCase());
             } catch (Exception exception1) {
                 // If neither, throw exception
                 throw new TransactionException("Invalid category");
@@ -386,10 +396,12 @@ public class TransactionService {
         Page<Transaction> transactions = transactionRepo.findTransactionByUsername(username, pageable);
 
         // Filter transactions based on the given category and collect results
-        List<Transaction> filteredTransactions = transactions.getContent().stream().filter(transaction -> transaction.getCategory().equals(value)).collect(Collectors.toList());
+        List<Transaction> filteredTransactions = transactions.getContent().stream()
+                .filter(transaction -> transaction.getCategory().equals(value)).collect(Collectors.toList());
 
         // Convert to Page and then map to response
-        return new PageImpl<>(filteredTransactions, pageable, filteredTransactions.size()).map(TransactionUtil::toTransactionResponse);
+        return new PageImpl<>(filteredTransactions, pageable, filteredTransactions.size())
+                .map(TransactionUtil::toTransactionResponse);
     }
 
     /**
@@ -401,7 +413,7 @@ public class TransactionService {
      * @param value    The category of transactions for which the total amount is
      *                 being retrieved.
      * @return The total amount of transactions for the given user with the given
-     * category.
+     *         category.
      * @throws TransactionException If the username is null, or if the category is
      *                              invalid.
      */
@@ -424,11 +436,11 @@ public class TransactionService {
 
         try {
             // Check if the category is a valid income category
-            IncomeCategory incomeCategory = IncomeCategory.valueOf(value.toUpperCase());
+            IncomeCategory.valueOf(value.toUpperCase());
         } catch (Exception exception) {
             try {
                 // If not, check if it's a valid expense category
-                ExpenseCategory expenseCategory = ExpenseCategory.valueOf(value.toUpperCase());
+                ExpenseCategory.valueOf(value.toUpperCase());
             } catch (Exception exception1) {
                 // If neither, throw exception
                 throw new TransactionException("Invalid category");
@@ -439,7 +451,8 @@ public class TransactionService {
         List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
 
         // Calculate the total amount for the given category
-        amount = transactions.stream().filter(transaction -> transaction.getCategory().equalsIgnoreCase(value)).mapToDouble(Transaction::getAmount).sum();
+        amount = transactions.stream().filter(transaction -> transaction.getCategory().equalsIgnoreCase(value))
+                .mapToDouble(Transaction::getAmount).sum();
 
         redisService.setData(username + value, amount, 3600L);
         return amount;
@@ -451,7 +464,7 @@ public class TransactionService {
      * @param username The username for which all transactions are being retrieved.
      * @param date     The month for which all transactions are being retrieved.
      * @return A page of transaction response objects containing all transactions
-     * for the given user in the given month.
+     *         for the given user in the given month.
      * @throws TransactionException If the username is null, or if the date is
      *                              invalid.
      */
@@ -461,19 +474,41 @@ public class TransactionService {
             throw new TransactionException("Username and date should not be null");
         }
 
-        // Retrieve all transactions for the given username
-        Page<TransactionResponse> transactionResponses = getAllTransactionForUser(username, pageable);
+        // Fetch ALL transactions for the user to ensure we can filter by month
+        // correctly
+        Object cachedData = redisService.getData(username + "-transactions", List.class);
+        List<Transaction> allTransactions;
 
-        List<TransactionResponse> filteredTransactions = new ArrayList<>();
-
-        if (transactionResponses.getContent() != null) {
-            filteredTransactions = transactionResponses.getContent().stream().filter(transactionResponse -> {
-                LocalDate transactionDate = transactionResponse.getTransactionDate();
-                return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month;
-            }).collect(Collectors.toList());
+        if (cachedData != null) {
+            allTransactions = ((List<?>) cachedData).stream()
+                    .map(item -> objectMapper.convertValue(item, Transaction.class))
+                    .collect(Collectors.toList());
+        } else {
+            allTransactions = transactionRepo.findTransactionByUsername(username);
+            redisService.setData(username + "-transactions", allTransactions, 3600L);
         }
 
-        return new PageImpl<>(filteredTransactions, pageable, filteredTransactions.size());
+        // Filter by month and year
+        List<TransactionResponse> filteredTransactions = allTransactions.stream()
+                .filter(t -> {
+                    if (t.getTransactionDate() == null)
+                        return false;
+                    LocalDate date = t.getTransactionDate().toLocalDateTime().toLocalDate();
+                    return date.getYear() == year && date.getMonthValue() == month;
+                })
+                .map(TransactionUtil::toTransactionResponse)
+                .collect(Collectors.toList());
+
+        // Apply pagination to the filtered results
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), filteredTransactions.size());
+
+        if (start > filteredTransactions.size()) {
+            return new PageImpl<>(new ArrayList<>(), pageable, filteredTransactions.size());
+        }
+
+        List<TransactionResponse> pagedTransactions = filteredTransactions.subList(start, end);
+        return new PageImpl<>(pagedTransactions, pageable, filteredTransactions.size());
     }
 
     /**
@@ -485,7 +520,7 @@ public class TransactionService {
      * @param month    The month for which the total amount of transactions is being
      *                 retrieved.
      * @return The total amount of transactions for the given user in the given
-     * month.
+     *         month.
      * @throws TransactionException If the username is null, or if the date is
      *                              invalid.
      */
@@ -505,13 +540,15 @@ public class TransactionService {
 
             totalIncomeAmount = transactions.stream().filter(transaction -> {
                 LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
-                return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month && transaction.getTransactionType().equalsIgnoreCase("INCOME");
+                return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month
+                        && transaction.getTransactionType().equalsIgnoreCase("INCOME");
             }).mapToDouble(Transaction::getAmount).sum();
             redisService.setData(username + month + year + "INCOME", totalIncomeAmount, 3600L);
 
             totalExpenseAmount = transactions.stream().filter(transaction -> {
                 LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
-                return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month && transaction.getTransactionType().equalsIgnoreCase("EXPENSE");
+                return transactionDate.getYear() == year && transactionDate.getMonth().getValue() == month
+                        && transaction.getTransactionType().equalsIgnoreCase("EXPENSE");
             }).mapToDouble(Transaction::getAmount).sum();
             redisService.setData(username + month + year + "EXPENSE", totalExpenseAmount, 3600L);
         }
@@ -532,7 +569,7 @@ public class TransactionService {
      * @param year     The year for which the total amount of transactions is being
      *                 retrieved.
      * @return A map containing the total amount of income and expense transactions
-     * for the given user in the given year.
+     *         for the given user in the given year.
      * @throws TransactionException If the username is null.
      */
     public Map<String, Double> getTotalTransactionAmountInYear(String username, int year) {
@@ -557,7 +594,8 @@ public class TransactionService {
 
             totalExpenseAmount = transactions.stream().filter(transaction -> {
                 LocalDate transactionDate = transaction.getTransactionDate().toLocalDateTime().toLocalDate();
-                return transactionDate.getYear() == year && transaction.getTransactionType().equalsIgnoreCase("EXPENSE");
+                return transactionDate.getYear() == year
+                        && transaction.getTransactionType().equalsIgnoreCase("EXPENSE");
             }).mapToDouble(Transaction::getAmount).sum();
             redisService.setData(username + year + "EXPENSE", totalExpenseAmount, 3600L);
         }
@@ -607,6 +645,17 @@ public class TransactionService {
         }
     }
 
+    /**
+     * Retrieves a list of transactions for a specific user within a date range.
+     * Unlike getFilteredTransaction, this returns a List instead of a Page.
+     *
+     * @param username  the username of the user
+     * @param startDate the start of the date range (ISO format)
+     * @param endDate   the end of the date range (ISO format)
+     * @return a list of transactions matching the criteria
+     * @throws TransactionException if the date format is invalid or range is
+     *                              incorrect
+     */
     public List<Transaction> getFilteredTransactionsForUser(String username, String startDate, String endDate) {
 
         LocalDate start, end;
@@ -630,7 +679,12 @@ public class TransactionService {
 
         List<Transaction> transactions = transactionRepo.findTransactionByUsername(username);
 
-        List<Transaction> filteredTransaction = transactions.stream().filter(transaction -> (transaction.getTransactionDate().toLocalDateTime().toLocalDate().equals(start) || transaction.getTransactionDate().toLocalDateTime().toLocalDate().equals(end) || transaction.getTransactionDate().toLocalDateTime().toLocalDate().isAfter(start) && transaction.getTransactionDate().toLocalDateTime().toLocalDate().isBefore(end))).collect(Collectors.toList());
+        List<Transaction> filteredTransaction = transactions.stream()
+                .filter(transaction -> (transaction.getTransactionDate().toLocalDateTime().toLocalDate().equals(start)
+                        || transaction.getTransactionDate().toLocalDateTime().toLocalDate().equals(end)
+                        || transaction.getTransactionDate().toLocalDateTime().toLocalDate().isAfter(start)
+                                && transaction.getTransactionDate().toLocalDateTime().toLocalDate().isBefore(end)))
+                .collect(Collectors.toList());
 
         return filteredTransaction;
 

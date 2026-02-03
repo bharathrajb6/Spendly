@@ -211,7 +211,7 @@ export default function Transactions() {
                                         ) : (
                                             <ArrowDownCircle size={18} />
                                         )}
-                                        {tx.type === 'INCOME' ? '+' : '-'}${Math.abs(tx.amount).toLocaleString()}
+                                        {tx.type === 'INCOME' ? '+' : '-'}₹{Math.abs(tx.amount).toLocaleString()}
                                     </div>
                                     <div className="transaction-actions">
                                         <button
@@ -267,7 +267,7 @@ export default function Transactions() {
                                 <div className="delete-preview">
                                     <strong>{deleteConfirm.notes || deleteConfirm.description || 'No description'}</strong>
                                     <span className={deleteConfirm.type === 'INCOME' ? 'income' : 'expense'}>
-                                        {deleteConfirm.type === 'INCOME' ? '+' : '-'}${Math.abs(deleteConfirm.amount).toLocaleString()}
+                                        {deleteConfirm.type === 'INCOME' ? '+' : '-'}₹{Math.abs(deleteConfirm.amount).toLocaleString()}
                                     </span>
                                 </div>
                                 <p className="text-muted" style={{ fontSize: '0.85rem', marginTop: 'var(--spacing-sm)' }}>

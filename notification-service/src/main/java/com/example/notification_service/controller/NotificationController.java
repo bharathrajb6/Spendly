@@ -20,7 +20,10 @@ public class NotificationController {
     }
 
     /**
-     * Test endpoint to manually send a notification
+     * Sends a test notification to the specified user.
+     * 
+     * @param notification the notification to send
+     * @return a map containing the status of the notification
      */
     @PostMapping("/test")
     public ResponseEntity<Map<String, Object>> sendTestNotification(@RequestBody NotificationDto notification) {
@@ -42,7 +45,9 @@ public class NotificationController {
     }
 
     /**
-     * Check WebSocket status
+     * Gets the status of the WebSocket server.
+     * 
+     * @return a map containing the status of the WebSocket server
      */
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getStatus() {
@@ -52,7 +57,10 @@ public class NotificationController {
     }
 
     /**
-     * Check if a specific user is connected
+     * Gets the status of the WebSocket connection for a specific user.
+     * 
+     * @param username the username of the user
+     * @return a map containing the status of the WebSocket connection for the user
      */
     @GetMapping("/status/{username}")
     public ResponseEntity<Map<String, Object>> getUserStatus(@PathVariable String username) {

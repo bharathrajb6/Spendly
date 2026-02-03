@@ -124,3 +124,31 @@
 .sidebar-logout:hover {
     color: rgba(255, 255, 255, 0.8);
 }
+
+/* Admin Link */
+.sidebar-nav-item.admin-link {
+    margin-top: auto;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.sidebar-nav-item.admin-link svg {
+    color: #a78bfa;
+}
+
+.sidebar-nav-item.admin-link.active {
+    background: linear-gradient(135deg, #7c3aed, #6366f1);
+}
+
+/* Admin Badge */
+.admin-badge {
+    font-size: 0.625rem;
+    background: linear-gradient(135deg, #7c3aed, #6366f1);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}

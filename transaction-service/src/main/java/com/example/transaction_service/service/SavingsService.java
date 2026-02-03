@@ -4,7 +4,6 @@ import com.example.transaction_service.exception.TransactionException;
 import com.example.transaction_service.model.Savings;
 import com.example.transaction_service.model.Transaction;
 import com.example.transaction_service.repo.SavingsRepo;
-import com.example.transaction_service.repo.TransactionRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -19,9 +18,14 @@ import java.util.UUID;
 public class SavingsService {
 
     private final SavingsRepo savingsRepo;
-    private final TransactionRepo transactionRepo;
 
-
+    /**
+     * Updates the user's total savings based on a new transaction.
+     * If no savings record exists for the user, a new one is created.
+     *
+     * @param transaction the transaction to process
+     * @return the updated total savings amount
+     */
     public double updateSaving(Transaction transaction) {
         Optional<Savings> savings = savingsRepo.findByUsername(transaction.getUsername());
 
@@ -57,6 +61,12 @@ public class SavingsService {
         }
     }
 
+    /**
+     * Retrieves the total savings amount for a specific user.
+     *
+     * @param username the username of the user
+     * @return the total savings amount, or 0.0 if no record exists
+     */
     public Double getSavingsData(String username) {
 
         Optional<Savings> savings = savingsRepo.findByUsername(username);
@@ -70,13 +80,18 @@ public class SavingsService {
     /**
      * Updates the savings data after a transaction update.
      *
-     * @param username       The username of the user for which the savings is being updated.
-     * @param oldTransaction The old transaction for which the savings is being updated.
-     * @param newTransaction The new transaction for which the savings is being updated.
+     * @param username       The username of the user for which the savings is being
+     *                       updated.
+     * @param oldTransaction The old transaction for which the savings is being
+     *                       updated.
+     * @param newTransaction The new transaction for which the savings is being
+     *                       updated.
      * @return The updated savings amount.
      */
-    public double updateSavingsDataAfterTransactionUpdate(String username, Transaction oldTransaction, Transaction newTransaction) {
-        Savings savings = savingsRepo.findByUsername(username).orElseThrow(() -> new TransactionException("Savings not found for this user."));
+    public double updateSavingsDataAfterTransactionUpdate(String username, Transaction oldTransaction,
+            Transaction newTransaction) {
+        Savings savings = savingsRepo.findByUsername(username)
+                .orElseThrow(() -> new TransactionException("Savings not found for this user."));
 
         double currentSavings = savings.getSavedAmount();
         double oldAmount = oldTransaction.getAmount();
@@ -117,8 +132,18 @@ public class SavingsService {
         return updatedSavings;
     }
 
+    /**
+     * Updates the user's total savings after a transaction is deleted.
+     * Reverses the impact of the deleted transaction on the savings balance.
+     *
+     * @param username    the username of the user
+     * @param transaction the transaction that was deleted
+     * @return the updated total savings amount
+     * @throws TransactionException if the savings record is not found for the user
+     */
     public double updateSavingsAfterTransactionDelete(String username, Transaction transaction) {
-        Savings savings = savingsRepo.findByUsername(username).orElseThrow(() -> new TransactionException("Savings not found for this user."));
+        Savings savings = savingsRepo.findByUsername(username)
+                .orElseThrow(() -> new TransactionException("Savings not found for this user."));
 
         double currentSavings = savings.getSavedAmount();
         double updatedSavings = 0;
@@ -132,7 +157,7 @@ public class SavingsService {
         try {
             savingsRepo.updateSavingAmount(updatedSavings, username);
         } catch (Exception exception) {
-            throw new TransactionException("Unable to u[date the savings for the user.");
+            throw new TransactionException("Unable to update the savings for the user.");
         }
 
         return updatedSavings;
